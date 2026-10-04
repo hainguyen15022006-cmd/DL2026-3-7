@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Pretrained model checkpoints (download locally; do not commit)
+weights/
+*.pth
+*.pt

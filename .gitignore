@@ -223,3 +223,6 @@ __marimo__/
 weights/
 *.pth
 *.pt
+
+# COCO source data and local handoff archive
+/data/

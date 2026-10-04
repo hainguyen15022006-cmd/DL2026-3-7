@@ -222,15 +222,20 @@ Giải nén tại thư mục gốc repo để dùng ngay các ảnh và mask. G�
 toàn bộ annotation COCO; để chạy `--verify-only` trên máy mới, cần tải và
 đặt `instances_val2017.json` đúng đường dẫn, hoặc chạy `--download` trước.
 
-**Link tải trực tiếp: CHỜ LÊ TẤN THÀNH TẢI ZIP LÊN NƠI CHIA SẺ VÀ ĐIỀN LINK.**
-Theo lựa chọn của Thành, gói hiện chỉ được chuẩn bị tại máy. Chưa được coi
-là hoàn tất yêu cầu link tải đến khi người nhận truy cập/tải được. Sau khi
-cập nhật link trong tài liệu, chạy lại `--verify-only --package` để bản
-`DATA.md` trong ZIP cũng được cập nhật.
+- [Tải ZIP trực tiếp](https://drive.google.com/uc?export=download&id=1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8)
+- [Mở file trên Google Drive](https://drive.google.com/file/d/1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8/view?usp=sharing)
+
+Đã kiểm tra ngày 05/10/2026: tải được không cần đăng nhập; ZIP có
+9,856,902 bytes, 106 file và vượt qua kiểm tra toàn vẹn. SHA256 của ZIP:
+`10366a6fe77cf343bb23f704ed575d53151f7ce83ce78cfc9077a4d20c55d6fa`.
+
+ZIP trên Drive giữ nguyên bản dữ liệu đã kiểm tra. Bản `DATA.md` bên trong
+ZIP được tạo trước khi có link chia sẻ; dùng `DATA.md` trên nhánh
+`thanh-data` làm tài liệu cập nhật. Ảnh, masks và manifest không thay đổi.
 
 Thư mục `/data/` được bỏ qua bởi Git, gồm ảnh, masks, annotation và ZIP.
 Code, manifest, ba overlay và `DATA.md` là các file nhẹ để bàn giao qua repo
-khi Thành quyết định push. Không cần đưa ảnh COCO hay checkpoint vào Git.
+trên nhánh `thanh-data`. Không cần đưa ảnh COCO hay checkpoint vào Git.
 
 ## Dataset and Data Preparation - nội dung bàn giao cho báo cáo
 
@@ -264,5 +269,5 @@ selection rules, software versions and checksums are documented in DATA.md
 and the accompanying preparation statistics.
 
 Nguồn cho phần Dataset: COCO download/terms và COCO API ở đầu tài liệu.
-Trưởng nhóm ghép đoạn này vào báo cáo chung, đồng thời cập nhật link tải
-gói xử lý sau khi Thành chia sẻ.
+Trưởng nhóm ghép đoạn này vào báo cáo chung và sử dụng link tải gói xử lý
+ở mục bàn giao phía trên.

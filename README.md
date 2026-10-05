@@ -49,7 +49,7 @@ macOS/Linux:
 python3.12 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install torch torchvision
-.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements-inference.txt
 ```
 
 Windows PowerShell:
@@ -58,11 +58,13 @@ Windows PowerShell:
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install torch torchvision
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-inference.txt
 ```
 
-For a CSV-only review, PyTorch and model checkpoints are unnecessary: install
-`requirements.txt` and run the matrix checks in section 4. The exact package
+For a CSV/mask review, PyTorch and model checkpoints are unnecessary: install
+only `requirements.txt` and run the checks in section 4. Install
+`requirements-inference.txt` (and a suitable PyTorch/TorchVision pair) when
+running either pretrained model. The exact package
 versions observed for Sơn's run are in `requirements-son.txt` and
 `results/environment.json`; Dương's versions are in
 `results/duong/requirements-used.txt` and `results/duong/environment.json`.

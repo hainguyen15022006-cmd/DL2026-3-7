@@ -34,6 +34,12 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def manifest_content_sha256(rows):
+    """Hash manifest values, independent of checkout line endings/indentation."""
+    canonical = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def download(url, path):
     """Retry interrupted downloads; only expose a completed file at its final path."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -216,6 +222,7 @@ def process(root, allow_download, verify_only):
         "annotation_url": ANNOTATION_URL,
         "annotation_sha256": sha256(annotation_path),
         "manifest_sha256": sha256(manifest_path),
+        "manifest_content_sha256": manifest_content_sha256(manifest),
         "python": sys.version.split()[0],
         "dependencies": {name: importlib.metadata.version(name) for name in ("numpy", "Pillow", "pycocotools")},
         "selected_sources": selected_sources,
@@ -223,9 +230,17 @@ def process(root, allow_download, verify_only):
     stats_path = data_dir / "preparation_stats.json"
     if verify_only:
         existing = json.loads(stats_path.read_text(encoding="utf-8"))
-        for key in ("seed", "selection", "annotation_sha256", "manifest_sha256", "selected_sources"):
+        for key in ("seed", "selection", "annotation_sha256", "selected_sources"):
             if existing[key] != stats[key]:
                 raise ValueError(f"Verification mismatch: {key}")
+        # Older handoff archives contain a raw SHA256 of the Windows CRLF file.
+        # The parsed manifest was already compared with regenerated COCO IDs above;
+        # a Git checkout may legitimately change only its line endings.
+        if ("manifest_content_sha256" in existing
+                and existing["manifest_content_sha256"] != stats["manifest_content_sha256"]):
+            raise ValueError("Verification mismatch: manifest_content_sha256")
+        if existing.get("manifest_sha256") != stats["manifest_sha256"]:
+            print("NOTE: Manifest byte checksum differs; parsed content and COCO selection match.", flush=True)
         print("PASS: regenerated IDs, all 50 image/mask pairs, binary masks, hashes and 3 overlays.", flush=True)
     else:
         stats["prepared_at_vietnam"] = datetime.now(timezone(timedelta(hours=7))).isoformat(timespec="seconds")
@@ -235,22 +250,28 @@ def process(root, allow_download, verify_only):
 
 
 def package(root, manifest):
-    """Local handoff ZIP only; no upload or Git operation."""
-    paths = [root / "DATA.md", root / "configs" / "eval_manifest.json",
-             root / "data" / "coco" / "preparation_stats.json"]
-    for index, row in enumerate(manifest):
+    """Package data with a reference manifest, not docs or tracked overlays."""
+    manifest_path = root / "configs" / "eval_manifest.json"
+    stats_path = root / "data" / "coco" / "preparation_stats.json"
+    paths = [manifest_path, stats_path]
+    for row in manifest:
         paths += [root / "data" / "coco" / "val2017" / row["file_name"],
                   root / "data" / "coco" / "gt_masks" / f"{row['annotation_id']}.png"]
-        if index < 3:
-            paths.append(root / "results" / "examples" / f"data_{row['image_id']}_{row['annotation_id']}.png")
     for path in paths:
         if not path.is_file():
             raise FileNotFoundError(path)
+    packaged_stats = json.loads(stats_path.read_text(encoding="utf-8"))
+    packaged_stats["manifest_sha256"] = sha256(manifest_path)
+    packaged_stats["manifest_content_sha256"] = manifest_content_sha256(manifest)
     target = root / "data" / "coco_eval_seed2026.zip"
     temporary = target.with_suffix(".zip.part")
     with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in paths:
-            archive.write(path, path.relative_to(root).as_posix())
+            member_name = path.relative_to(root).as_posix()
+            if path == stats_path:
+                archive.writestr(member_name, json.dumps(packaged_stats, ensure_ascii=False, indent=2) + "\n")
+            else:
+                archive.write(path, member_name)
     with zipfile.ZipFile(temporary) as archive:
         if archive.testzip() is not None:
             raise ValueError("ZIP integrity check failed")

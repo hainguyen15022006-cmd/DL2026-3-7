@@ -59,6 +59,12 @@ prompt box and the tight ground-truth box: 0.386 for overlap in (0, 0.5]
 (n = 101), 0.518 for (0.5, 0.8] (n = 196) and 0.756 for (0.8, 1.0] (n = 53,
 including the 50 clean boxes).
 
+Zero-IoU runs. Across all 800 runs, 8 runs had an IoU of exactly 0, all on
+SAM ViT-B with shifted prompts: 3 box runs at 20% shift, 1 point run at 10%
+shift and 4 point runs at 20% shift. The predicted quality score is not a
+reliable indicator of correctness in these cases: both degraded examples
+below had scores above 0.8.
+
 ### Qualitative examples
 Figure Y shows four examples chosen by a predefined rule: the two
 highest-IoU clean-box cases of SAM ViT-B and the two largest IoU drops at 20%
@@ -67,10 +73,13 @@ with annotation_id and IoU.
 - Good case 1: annotation 36588, clean box, IoU 0.968.
 - Good case 2: annotation 1050658, clean box, IoU 0.961.
 - Degraded case 1: annotation 36588, 20% shift, trial 3. IoU fell from 0.968
-  to 0.000 although the shifted box still overlaps the tight box by 0.494.
+  to approximately 0 (below 0.001) although the shifted box still overlaps
+  the tight box by 0.494. The predicted score remained high (0.81), so the
+  mask was produced with high confidence but did not match the target object.
   [TBD after viewing the overlay: what the predicted mask covers.]
 - Degraded case 2: annotation 339546, 20% shift, trial 2. IoU fell from 0.950
-  to 0.000 with box overlap 0.466. [TBD after viewing the overlay.]
+  to 0.000 with box overlap 0.466 and a predicted score of 0.84.
+  [TBD after viewing the overlay.]
 
 These examples are illustrative and do not represent overall frequency. Cause
 descriptions are based on visual inspection and are not causal claims.

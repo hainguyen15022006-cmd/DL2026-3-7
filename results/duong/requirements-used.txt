@@ -1,0 +1,15 @@
+﻿filelock==3.32.3
+fsspec==2026.7.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.6.1
+numpy==1.26.4
+pillow==11.1.0
+pycocotools==2.0.11
+scipy==1.15.2
+-e git+https://github.com/facebookresearch/segment-anything.git@dca509fe793f601edb92606367a655c15ac00fdf#egg=segment_anything
+sympy==1.13.1
+torch==2.6.0+cpu
+torchvision==0.21.0+cpu
+typing_extensions==4.16.0

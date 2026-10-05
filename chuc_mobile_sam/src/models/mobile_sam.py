@@ -93,7 +93,6 @@ class MobileSamAdapter:
     model_type = MODEL_TYPE
 
     def __init__(self, checkpoint: str, device: str = "auto"):
-        import torch
         if not os.path.isfile(checkpoint):
             raise FileNotFoundError(
                 f"Checkpoint not found: {checkpoint}. See docs/checkpoints.md (weights/mobile_sam.pt from the "
@@ -102,6 +101,10 @@ class MobileSamAdapter:
         if size < 1_000_000:
             raise ValueError(f"{checkpoint} is only {size} bytes: it may be a broken file or Git LFS pointer, not a model weight "
                              "(the expected file is about 40.7 MB).")
+        # Validate local checkpoint errors before importing heavyweight optional
+        # model dependencies. This keeps input-validation tests usable in CI.
+        import torch
+
         try:
             from mobile_sam import SamPredictor, sam_model_registry
         except ModuleNotFoundError as import_error:

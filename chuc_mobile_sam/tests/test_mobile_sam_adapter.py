@@ -6,6 +6,7 @@
 """
 import os
 import sys
+import builtins
 
 import numpy as np
 import pytest
@@ -59,7 +60,15 @@ def test_check_point_and_box():
         check_box([100, 80, 30, 20], hw)
 
 
-def test_missing_or_bad_checkpoint(tmp_path):
+def test_missing_or_bad_checkpoint_does_not_require_torch(tmp_path, monkeypatch):
+    original_import = builtins.__import__
+
+    def import_without_torch(name, *args, **kwargs):
+        if name == "torch":
+            raise ModuleNotFoundError("torch intentionally unavailable", name="torch")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", import_without_torch)
     with pytest.raises(FileNotFoundError):
         MobileSamAdapter(str(tmp_path / "missing.pt"))
     tiny = tmp_path / "pointer.pt"

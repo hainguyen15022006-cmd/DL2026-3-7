@@ -50,6 +50,7 @@ coverage.xml
 *.lcov
 .hypothesis/
 .pytest_cache/
+.tmp/
 cover/
 
 # Translations
@@ -229,6 +230,10 @@ weights/
 
 # Full-resolution prediction masks are local run artifacts
 /results/masks/
+
+# Local smoke-test outputs generated from the COCO subset
+/chuc_mobile_sam/results/smoke_coco_mobile_check/
+/chuc_mobile_sam/results/smoke_mobile_sam/
 
 # Local presentation build and validation artifacts
 /.codex-slide-build/

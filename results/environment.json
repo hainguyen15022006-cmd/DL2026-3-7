@@ -1,11 +1,11 @@
 {
-  "created_at_utc": "2026-10-05T07:06:19.549883+00:00",
-  "platform": "Windows-11-10.0.22000-SP0",
-  "python": "3.12.14",
+  "created_at_utc": "2026-10-05T18:11:08.974535+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.14.2",
   "torch": "2.14.1+cpu",
   "cuda_available": false,
   "requested_device": "cpu",
-  "torch_threads": 4,
+  "torch_threads": 8,
   "models": {
     "sam_vit_b": {
       "model_type": "vit_b",

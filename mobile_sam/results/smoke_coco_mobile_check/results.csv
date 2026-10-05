@@ -1,0 +1,7 @@
+model,image_id,annotation_id,prompt_type,noise_level,trial,iou,seconds,status,seed,score,encode_seconds,error
+mobile_sam,521282,1152444,point,0,0,0.635791,0.168357,ok,2026,0.547719,1.037243,
+mobile_sam,521282,1152444,box,0,0,0.881188,0.081098,ok,2026,0.97882,0.0,
+mobile_sam,260925,144786,point,0,0,0.007121,0.074965,ok,2026,0.634787,0.951768,
+mobile_sam,260925,144786,box,0,0,0.876831,0.060419,ok,2026,0.975013,0.0,
+mobile_sam,54592,613127,point,0,0,0.682677,0.061637,ok,2026,0.923321,0.872283,
+mobile_sam,54592,613127,box,0,0,0.69472,0.056756,ok,2026,0.928833,0.0,

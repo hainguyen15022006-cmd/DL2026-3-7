@@ -1,0 +1,7 @@
+# Lightweight dependencies for the model-independent test suite.
+numpy==2.5.3
+Pillow==12.3.0
+scipy==1.18.1
+pycocotools==2.0.11
+opencv-python-headless
+pytest

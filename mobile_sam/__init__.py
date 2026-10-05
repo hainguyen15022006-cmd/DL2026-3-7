@@ -1,0 +1,1 @@
+"""MobileSAM project package namespace."""

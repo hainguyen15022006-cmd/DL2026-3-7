@@ -82,6 +82,7 @@ dictionary `rejected_annotations` có số lượng bằng 0.
 
 ```text
 scripts/prepare_data.py
+scripts/extract_data_zip.py
 configs/eval_manifest.json
 DATA.md
 data/coco/annotations/instances_val2017.json
@@ -151,10 +152,12 @@ Mười mẫu smoke, theo đúng thứ tự manifest:
 ## Cài đặt và chạy lại
 
 Môi trường đã dùng: Python **3.12.14**, NumPy **2.5.3**, Pillow **12.3.0**,
-pycocotools **2.0.11**. Chỉ cần CPU cho bước chuẩn bị dữ liệu.
-Các lệnh dưới đây chạy trong thư mục gốc repo trên PowerShell.
+pycocotools **2.0.11**. Chỉ cần CPU cho bước chuẩn bị dữ liệu. Chạy các
+lệnh dưới đây từ thư mục gốc repo. Trên macOS dùng `python3.12` (không dùng
+nhầm Python 3.14 mặc định nếu môi trường chưa hỗ trợ các phiên bản thư viện
+được ghi ở đây).
 
-Máy mới có Python 3.12:
+Windows PowerShell với Python 3.12:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -166,6 +169,20 @@ Trên máy Thành đã có `.venv`, chạy trực tiếp lệnh cuối. Môi tr�
 tạo từ Python đi kèm Codex; không chia sẻ `.venv` cho các máy khác. Các phiên
 bản trên là dependencies của phần dữ liệu để trưởng nhóm ghép vào
 `requirements.txt` chung.
+
+macOS với Python 3.12:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install numpy==2.5.3 Pillow==12.3.0 pycocotools==2.0.11
+.venv/bin/python scripts/prepare_data.py --download
+.venv/bin/python scripts/prepare_data.py --verify-only
+```
+
+`--download` tải annotation COCO chính thức và chỉ 50 ảnh đã chốt. Có thể
+dùng gói ZIP xử lý bên dưới để lấy ảnh/GT mask nhanh hơn; tuy nhiên để chạy
+`--verify-only` đối chiếu từng pixel với annotation gốc vẫn cần file
+`instances_val2017.json` (lệnh `--download` sẽ lấy file này nếu còn thiếu).
 
 Script chỉ tải file còn thiếu. Nếu một ảnh tải lỗi, giữ nguyên danh sách ID
 và dừng; chạy lại cùng lệnh sẽ tiếp tục từ các file đã có. Không tự thay ảnh.
@@ -183,7 +200,10 @@ Kiểm tra lại không sửa dữ liệu:
 
 Lệnh này sinh lại danh sách từ annotation, so với manifest đã khóa, kiểm tra
 đủ 50 cặp ảnh/mask, giá trị PNG nhị phân, đối chiếu từng pixel với
-`annToMask`, kiểm tra checksum và ba file overlay. Không dùng mạng.
+`annToMask`, kiểm tra checksum ảnh/mask và ba file overlay. Không dùng mạng
+nếu annotation COCO đã có trên máy. Nội dung JSON được so sánh theo giá trị,
+không theo checksum byte của manifest, vì Git có thể đổi ký tự xuống dòng
+giữa Windows và macOS.
 
 Tạo lại ZIP sau khi đã chuẩn bị hoặc kiểm tra:
 
@@ -208,19 +228,36 @@ Kiểm tra trực quan ba mẫu không chứng minh mọi nhãn COCO đều hoà
 SHA256 của `instances_val2017.json` đã tải:
 `e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f`.
 
-SHA256 của manifest đã khóa:
+SHA256 byte của manifest **trong ZIP gốc** (xuống dòng CRLF):
 `de36a8b929c27bc14872969d091b72ad54f2bd62013b2c342d80d7ac0bd0b4a2`.
+Sau Git checkout trên macOS, cùng nội dung JSON có xuống dòng LF và SHA256
+byte là `650aa13384930d21c107ba2e4c3da9fbe93a24e8df91219e5b9b33de7498f87d`.
+SHA256 của **nội dung JSON chuẩn hóa** (sắp khóa, không phụ thuộc xuống dòng)
+là `220a2ec1053848996e4b325e60f3acb3a7bc36b9ef77a3dd7dfc201df749602f`.
+Không dùng hai checksum byte khác nhau để kết luận danh sách mẫu đã đổi.
 
 Đây là checksum ghi nhận tại lần chuẩn bị, không phải chữ ký xác thực của
 nhà phát hành. Checksum từng ảnh và mask nằm trong `preparation_stats.json`.
 
 ## Gói dữ liệu xử lý để bàn giao
 
-File tại máy: **`data/coco_eval_seed2026.zip`**. Gói chứa 50 ảnh gốc, 50 GT
-masks, manifest, thống kê/nguồn/giấy phép và ba overlay, kèm `DATA.md`.
-Giải nén tại thư mục gốc repo để dùng ngay các ảnh và mask. Gói không chứa
-toàn bộ annotation COCO; để chạy `--verify-only` trên máy mới, cần tải và
-đặt `instances_val2017.json` đúng đường dẫn, hoặc chạy `--download` trước.
+File tại máy: **`data/coco_eval_seed2026.zip`**. Gói Drive hiện tại chứa 50
+ảnh gốc, 50 GT masks, manifest, thống kê/nguồn/giấy phép và ba overlay, kèm
+một bản `DATA.md` cũ. **Không giải nén toàn bộ ZIP đè lên thư mục repo**:
+như vậy sẽ thay `DATA.md` và manifest đã theo Git. Từ thư mục gốc repo, dùng
+script chỉ kiểm tra và lấy các file thuộc `data/coco/`:
+
+```bash
+python3.12 scripts/extract_data_zip.py /duong/dan/toi/coco_eval_seed2026.zip --check-only
+python3.12 scripts/extract_data_zip.py /duong/dan/toi/coco_eval_seed2026.zip
+```
+
+Trên Windows thay `python3.12` bằng `py -3.12` và đường dẫn ZIP bằng đường
+dẫn trên máy của bạn. Script dùng thư viện chuẩn của Python; nó đối chiếu
+manifest trong ZIP với manifest trên Git, kiểm tra toàn vẹn ZIP/checksum của
+50 ảnh và 50 masks, rồi chỉ lấy dữ liệu. `--check-only` không ghi file.
+Gói ZIP không chứa toàn bộ annotation COCO; để chạy `--verify-only` đối chiếu
+với annotation gốc trên máy mới, chạy `prepare_data.py --download` trước.
 
 - [Tải ZIP trực tiếp](https://drive.google.com/uc?export=download&id=1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8)
 - [Mở file trên Google Drive](https://drive.google.com/file/d/1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8/view?usp=sharing)
@@ -230,8 +267,11 @@ toàn bộ annotation COCO; để chạy `--verify-only` trên máy mới, cần
 `10366a6fe77cf343bb23f704ed575d53151f7ce83ce78cfc9077a4d20c55d6fa`.
 
 ZIP trên Drive giữ nguyên bản dữ liệu đã kiểm tra. Bản `DATA.md` bên trong
-ZIP được tạo trước khi có link chia sẻ; dùng `DATA.md` trên nhánh
-`thanh-data` làm tài liệu cập nhật. Ảnh, masks và manifest không thay đổi.
+ZIP được tạo trước khi có link chia sẻ; dùng `DATA.md` trên nhánh mới nhất
+làm tài liệu cập nhật. Ảnh, masks và nội dung manifest không thay đổi. Nếu
+tạo lại ZIP bằng phiên bản mới của `prepare_data.py`, gói mới không chứa
+`DATA.md` hay overlay đã có trên Git; cần công bố link/checksum mới nếu thay
+gói Drive đang dẫn ở đây.
 
 Thư mục `/data/` được bỏ qua bởi Git, gồm ảnh, masks, annotation và ZIP.
 Code, manifest, ba overlay và `DATA.md` là các file nhẹ để bàn giao qua repo

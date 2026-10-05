@@ -1,0 +1,25 @@
+{
+  "created_at_utc": "2026-10-05T07:06:19.549883+00:00",
+  "platform": "Windows-11-10.0.22000-SP0",
+  "python": "3.12.14",
+  "torch": "2.14.1+cpu",
+  "cuda_available": false,
+  "requested_device": "cpu",
+  "torch_threads": 4,
+  "models": {
+    "sam_vit_b": {
+      "model_type": "vit_b",
+      "checkpoint_path": "weights/sam_vit_b_01ec64.pth",
+      "source_path": "../segment-anything",
+      "source_commit": "dca509fe793f601edb92606367a655c15ac00fdf",
+      "checkpoint_sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912"
+    },
+    "mobile_sam": {
+      "model_type": "vit_t",
+      "checkpoint_path": "weights/mobile_sam.pt",
+      "source_path": "../MobileSAM",
+      "source_commit": "f706ad9c4eb7f219c00d9050e46328518ffb65d2",
+      "checkpoint_sha256": "6dbb90523a35330fedd7f1d3dfc66f995213d81b29a5ca8108dbcdd4e37d6c2f"
+    }
+  }
+}

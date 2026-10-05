@@ -226,3 +226,10 @@ weights/
 
 # COCO source data and local handoff archive
 /data/
+
+# Full-resolution prediction masks are local run artifacts
+/results/masks/
+
+# Local presentation build and validation artifacts
+/.codex-slide-build/
+/.codex-finalizer/

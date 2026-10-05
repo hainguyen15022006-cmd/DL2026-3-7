@@ -1,0 +1,13 @@
+{
+  "status": "ok",
+  "seed": 2026,
+  "instances": 50,
+  "prompt_rows": 700,
+  "clean_rows": 100,
+  "noisy_rows": 600,
+  "point_outside_gt_rows": 52,
+  "json_path": "results/prompts.json",
+  "json_sha256": "7a895c952c540eea303b9b7a0b650a9dfc5ffda17db0ac6c6f19590b28eb95f7",
+  "csv_path": "results/prompts.csv",
+  "csv_sha256": "e66eba53a022547f357ebd78ac06424b7aa98f0f7becb10ddf2ee9d0ad1d0f00"
+}

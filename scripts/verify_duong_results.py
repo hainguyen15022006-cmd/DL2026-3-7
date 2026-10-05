@@ -11,6 +11,14 @@ from PIL import Image, ImageDraw, ImageFont
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument(
+        '--csv-only', action='store_true',
+        help='Validate rows and metadata without prediction PNGs; does not recompute IoU',
+    )
+    parser.add_argument(
+        '--check-only', action='store_true',
+        help='Validate without rewriting the historical audit or example overlays',
+    )
     args = parser.parse_args()
     root = args.root.resolve()
     manifest = json.loads((root/'configs/eval_manifest.json').read_text(encoding='utf-8-sig'))
@@ -21,6 +29,13 @@ def main():
         rows = list(csv.DictReader(f))
     assert len(rows) == 700 and len({r['run_id'] for r in rows}) == 700, 'Missing/duplicate CSV rows'
     assert {r['run_id'] for r in rows} == set(expected), 'Run IDs do not match shared prompts'
+    if not args.csv_only:
+        missing = [r['run_id'] for r in rows if not (root/r['mask_path']).is_file()]
+        if missing:
+            parser.error(
+                f'{len(missing)} prediction masks are unavailable (first: {missing[0]}). '
+                'Obtain Dương\'s mask package or use --csv-only; CSV-only does not verify IoU.'
+            )
     instances = {m['annotation_id']: m for m in manifest}
     errors = []; deltas = []; checked = []
     for r in rows:
@@ -32,26 +47,36 @@ def main():
             assert r['prompt_id'] == p['prompt_id'] and r['prompt_type'] == p['prompt_type']
             assert float(r['noise_level']) == p['noise_level'] and int(r['trial']) == p['trial']
             assert int(r['seed']) == p['seed'] == 2026 and r['device'] == 'cpu'
-            path = (root/r['mask_path']).resolve(); assert path.is_relative_to(root)
-            a = np.asarray(Image.open(path))
-            gt = np.asarray(Image.open(root/f"data/coco/gt_masks/{m['annotation_id']}.png")) > 0
-            assert a.shape == gt.shape == (m['height'], m['width'])
-            assert set(np.unique(a)).issubset({0, 255}), 'Prediction is not a binary PNG'
-            pred = a > 0; union = np.logical_or(pred, gt).sum()
-            iou = float(np.logical_and(pred, gt).sum()/union) if union else 1.0
-            delta = abs(iou-float(r['iou'])); assert delta <= 1e-12, 'Stored IoU differs from mask IoU'
+            stored_iou = float(r['iou'])
+            assert math.isfinite(stored_iou) and 0 <= stored_iou <= 1, 'Invalid stored IoU'
+            if not args.csv_only:
+                path = (root/r['mask_path']).resolve(); assert path.is_relative_to(root)
+                a = np.asarray(Image.open(path))
+                gt = np.asarray(Image.open(root/f"data/coco/gt_masks/{m['annotation_id']}.png")) > 0
+                assert a.shape == gt.shape == (m['height'], m['width'])
+                assert set(np.unique(a)).issubset({0, 255}), 'Prediction is not a binary PNG'
+                pred = a > 0; union = np.logical_or(pred, gt).sum()
+                iou = float(np.logical_and(pred, gt).sum()/union) if union else 1.0
+                delta = abs(iou-stored_iou); assert delta <= 1e-12, 'Stored IoU differs from mask IoU'
+                deltas.append(delta)
             assert all(math.isfinite(float(r[k])) and float(r[k]) >= 0 for k in ['seconds','encode_seconds'])
             assert math.isfinite(float(r['predicted_score']))
-            deltas.append(delta); checked.append(r)
+            checked.append(r)
         except Exception as e:
             errors.append({'run_id': r.get('run_id'), 'error': str(e) or type(e).__name__})
     directory = root/'results/duong/verification'; directory.mkdir(parents=True, exist_ok=True)
     summary = {'status': 'ok' if not errors else 'error', 'instances': len(manifest),
                'expected_rows':len(expected), 'verified_rows': len(checked),
                'max_absolute_iou_difference': max(deltas,default=None), 'errors':errors,
-               'scope':'Recomputed IoU from delivered masks; inference was not rerun in this audit.'}
-    (directory/'verification.json').write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8')
+               'scope':(
+                   'CSV metadata only; IoU was not recomputed from masks.' if args.csv_only
+                   else 'Recomputed IoU from delivered masks; inference was not rerun in this audit.'
+               )}
+    if not args.csv_only and not args.check_only:
+        (directory/'verification.json').write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8')
     print(json.dumps(summary,indent=2)); assert not errors, 'Result verification failed'
+    if args.csv_only or args.check_only:
+        return
     lookup = {r['prompt_id']:r for r in rows}
     # Fixed first-three selection, determined by manifest order, never by IoU.
     try: font = ImageFont.truetype('DejaVuSans.ttf',18)

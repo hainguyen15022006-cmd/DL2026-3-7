@@ -9,13 +9,13 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import shutil
 import sys
 import traceback
 from typing import Any
 
 import numpy as np
 from PIL import Image
-import torch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +27,7 @@ from src.experiment import (  # noqa: E402
     RunSpec,
     binary_iou,
     build_run_plan,
+    missing_model_assets,
     read_results,
     result_summary,
     write_results,
@@ -97,6 +98,8 @@ def save_mask(root: Path, directory: Path, model: str, prompt_id: str, mask: np.
 
 
 def write_environment(root: Path, config: dict[str, Any], device: str) -> None:
+    import torch
+
     model_metadata: dict[str, Any] = {}
     for name, model_config in config["models"].items():
         checkpoint = root / model_config["checkpoint_path"]
@@ -114,7 +117,7 @@ def write_environment(root: Path, config: dict[str, Any], device: str) -> None:
         "torch_threads": torch.get_num_threads(),
         "models": model_metadata,
     }
-    path = root / "results" / "environment.json"
+    path = root / config.get("environment_path", "results/environment.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
@@ -144,7 +147,7 @@ def parse_args() -> argparse.Namespace:
         "--models",
         nargs="+",
         choices=MODEL_NAMES,
-        default=list(MODEL_NAMES),
+        default=None,
     )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument(
@@ -161,10 +164,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if args.torch_threads is not None:
-        if args.torch_threads <= 0:
-            raise ValueError("--torch-threads must be a positive integer")
-        torch.set_num_threads(args.torch_threads)
+    if args.torch_threads is not None and args.torch_threads <= 0:
+        raise ValueError("--torch-threads must be a positive integer")
     config_path = args.config if args.config.is_absolute() else ROOT / args.config
     config = load_config(config_path)
     manifest_path = Path(config["manifest_path"])
@@ -185,10 +186,14 @@ def main() -> int:
         if prompt.annotation_id in selected_annotations
     ]
     prompts_by_id = {prompt.prompt_id: prompt for prompt in prompts}
+    selected_models = args.models if args.models is not None else list(config["models"])
+    unavailable = set(selected_models) - set(config["models"])
+    if unavailable:
+        raise ValueError(f"Models not configured in {config_path}: {sorted(unavailable)}")
     selected_setups = (
         ("setup1", "setup2", "setup3") if args.setup == "all" else (args.setup,)
     )
-    plan = build_run_plan(prompts, selected_setups, args.models)
+    plan = build_run_plan(prompts, selected_setups, selected_models)
 
     expected_by_model: dict[str, int] = defaultdict(int)
     for spec in plan:
@@ -197,7 +202,7 @@ def main() -> int:
         "status": "planned",
         "instances": len(instances),
         "selected_setups": selected_setups,
-        "selected_models": args.models,
+        "selected_models": selected_models,
         "expected_rows": len(plan),
         "expected_by_model": dict(sorted(expected_by_model.items())),
     }
@@ -208,7 +213,35 @@ def main() -> int:
     results_path = ROOT / config["raw_results_path"]
     mask_directory = Path(config["mask_directory"])
     results = read_results(results_path)
-    write_environment(ROOT, config, args.device)
+    pending_models = {
+        spec.model for spec in plan
+        if not should_skip(results.get(spec.run_id), ROOT, args.retry_errors)
+    }
+    missing_assets = missing_model_assets(ROOT, config["models"], pending_models)
+    if missing_assets:
+        raise FileNotFoundError(
+            "Cannot start inference; no result CSV was changed. Missing:\n- "
+            + "\n- ".join(missing_assets)
+        )
+    if pending_models:
+        import torch
+
+        if args.torch_threads is not None:
+            torch.set_num_threads(args.torch_threads)
+        historical_ok_missing_masks = any(
+            results.get(spec.run_id, {}).get("status") == "ok"
+            and not should_skip(results.get(spec.run_id), ROOT, args.retry_errors)
+            for spec in plan
+        )
+        if historical_ok_missing_masks and results_path.is_file():
+            backup_dir = ROOT / "results" / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            label = results_path.parent.name if results_path.parent != ROOT / "results" else "shared"
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+            backup_path = backup_dir / f"{label}_raw_predictions_{stamp}.csv"
+            shutil.copy2(results_path, backup_path)
+            print(f"Saved historical result CSV backup: {backup_path}")
+        write_environment(ROOT, config, args.device)
     instance_by_image = {row.image_id: row for row in instances}
 
     grouped: dict[str, dict[int, list[RunSpec]]] = defaultdict(lambda: defaultdict(list))
@@ -312,7 +345,8 @@ def main() -> int:
             )
 
     summary = result_summary(plan, results)
-    state_path = ROOT / "results" / "run_state.json"
+    state_path = ROOT / config.get("run_state_path", "results/run_state.json")
+    state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
     return 0 if summary["all_ok"] else 1

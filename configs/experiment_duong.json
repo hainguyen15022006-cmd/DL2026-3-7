@@ -6,6 +6,8 @@
   "prompt_csv_path": "results/prompts.csv",
   "raw_results_path": "results/duong/raw_predictions.csv",
   "mask_directory": "results/duong/masks",
+  "environment_path": "results/duong/environment.json",
+  "run_state_path": "results/duong/run_state.json",
   "models": {
     "sam_vit_b": {
       "model_type": "vit_b",

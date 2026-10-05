@@ -168,3 +168,44 @@ def result_summary(
         "error_run_ids": sorted(errors),
         "unexpected_run_ids": sorted(unexpected),
     }
+
+
+def missing_mask_run_ids(
+    plan: Iterable[RunSpec], results: dict[str, dict[str, Any]], root: str | Path
+) -> list[str]:
+    """Find successful rows whose saved prediction mask is unavailable or unsafe."""
+    root = Path(root).resolve()
+    missing: list[str] = []
+    for spec in plan:
+        row = results.get(spec.run_id)
+        if row is None or row.get("status") != "ok":
+            continue
+        mask_ref = row.get("mask_path", "")
+        if not mask_ref:
+            missing.append(spec.run_id)
+            continue
+        mask_path = Path(mask_ref)
+        if mask_path.is_absolute():
+            missing.append(spec.run_id)
+            continue
+        resolved = (root / mask_path).resolve()
+        if not resolved.is_relative_to(root) or not resolved.is_file():
+            missing.append(spec.run_id)
+    return sorted(missing)
+
+
+def missing_model_assets(
+    root: str | Path, model_configs: dict[str, dict[str, Any]], model_names: Iterable[str]
+) -> list[str]:
+    """List absent source/checkpoint paths before a run can change existing CSVs."""
+    root = Path(root).resolve()
+    missing: list[str] = []
+    for name in sorted(set(model_names)):
+        config = model_configs[name]
+        source = (root / config["source_path"]).resolve()
+        checkpoint = (root / config["checkpoint_path"]).resolve()
+        if not source.is_dir():
+            missing.append(f"{name} source directory: {source}")
+        if not checkpoint.is_file():
+            missing.append(f"{name} checkpoint: {checkpoint}")
+    return missing

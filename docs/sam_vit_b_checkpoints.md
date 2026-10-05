@@ -47,13 +47,13 @@ Images and GT masks must be installed from the team's data ZIP with `scripts/ext
 .\.venv\Scripts\python.exe scripts\run_experiments.py --config configs\experiment_duong.json --models sam_vit_b --device cpu --torch-threads 4
 ```
 
-The full run has 700 expected rows. The runner reuses successful rows only when their mask files still exist. To retry logged error rows, append `--retry-errors`. Runner metadata is written to the common `results/environment.json` and `results/run_state.json`; preserve earlier contributors' copies before executing, then copy the new metadata into `results/duong/`.
+The full run has 700 expected rows. The runner reuses successful rows only when their mask files still exist. To retry logged error rows, append `--retry-errors`. With `configs/experiment_duong.json`, runner metadata is written directly to `results/duong/environment.json` and `results/duong/run_state.json`; the shared metadata files are not replaced.
 
 ```powershell
-Copy-Item results\environment.json, results\run_state.json results\duong\
-.\.venv\Scripts\python.exe scripts\verify_duong_results.py
+.\.venv\Scripts\python.exe scripts\check_experiment_matrix.py --config configs\experiment_duong.json --require-masks
+.\.venv\Scripts\python.exe scripts\verify_duong_results.py --check-only
 ```
 
-The verification command checks IDs/conditions, binary PNGs, dimensions and all IoU values, and reproduces the fixed first-three smoke overlays. It requires the team's shared prompts and local COCO images/GT masks. It does not load the model or checkpoint.
+The verification command checks IDs/conditions, binary PNGs, dimensions and all IoU values. With `--check-only`, it does not rewrite the existing audit or fixed first-three smoke overlays. Omit `--check-only` only when regenerating those artifacts is intended. The command requires the team's shared prompts and local COCO images/GT masks. It does not load the model or checkpoint. If the prediction masks are absent, install only those masks from Dương's separate ZIP using `scripts/extract_duong_masks_zip.py`, or use `--csv-only` for a weaker metadata check.
 
 Do not commit COCO images, GT masks, checkpoint files or `.venv`. Prediction masks can be shared in the result ZIP for qualitative analysis; commit only the small verification overlays and logs selected for review.

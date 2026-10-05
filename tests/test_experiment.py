@@ -9,6 +9,8 @@ import numpy as np
 from src.experiment import (
     binary_iou,
     build_run_plan,
+    missing_mask_run_ids,
+    missing_model_assets,
     read_results,
     result_summary,
     write_results,
@@ -75,6 +77,38 @@ class ExperimentTests(unittest.TestCase):
         summary = result_summary(plan, loaded)
         self.assertEqual(summary["ok_rows"], 1)
         self.assertEqual(summary["missing_rows"], 1)
+
+    def test_missing_mask_check_requires_a_local_file(self) -> None:
+        plan = build_run_plan(self.prompts(11, 7), selected_setups=("setup2",))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mask = root / "results" / "masks" / "example.png"
+            mask.parent.mkdir(parents=True)
+            mask.write_bytes(b"png placeholder")
+            rows = {
+                plan[0].run_id: {
+                    "status": "ok",
+                    "mask_path": "results/masks/example.png",
+                },
+                plan[1].run_id: {
+                    "status": "ok",
+                    "mask_path": "../outside.png",
+                },
+            }
+            self.assertEqual(missing_mask_run_ids(plan, rows, root), [plan[1].run_id])
+
+    def test_missing_model_assets_preflight(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = {
+                "sam_vit_b": {
+                    "source_path": "../segment-anything",
+                    "checkpoint_path": "weights/sam_vit_b_01ec64.pth",
+                }
+            }
+            missing = missing_model_assets(root, config, ["sam_vit_b"])
+            self.assertEqual(len(missing), 2)
+            self.assertEqual(missing_model_assets(root, config, []), [])
 
 
 if __name__ == "__main__":

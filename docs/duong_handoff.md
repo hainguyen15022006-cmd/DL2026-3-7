@@ -17,7 +17,7 @@
 |---|---|
 | `configs/experiment_duong.json` | SAM-only config with separate CSV/mask paths |
 | `results/duong/raw_predictions.csv` | 700 individual measured predictions |
-| `results/duong/masks/sam_vit_b/` | 700 masks for independent metrics and qualitative analysis |
+| `results/duong/masks/sam_vit_b/` | 700 masks for independent metrics and qualitative analysis; distributed in the separate handoff ZIP, not tracked by Git |
 | `results/duong/environment.json` | Recorded execution environment and checkpoint hash |
 | `results/duong/run_state.json` | Runner completeness summary |
 | `results/duong/requirements-used.txt` | Observed local package versions |
@@ -42,6 +42,6 @@ These are observations on three smoke examples, not a population failure rate or
 
 ## Integration
 
-Extract this package at the group repo root after the runner/data-handoff branches are merged. It adds SAM-specific docs, the verification script and Dương's config/results. It does not replace the shared manifest, prompts, runner or adapters. It does not include the local COCO dataset or checkpoint. Source images/GT remain available in the existing team data ZIP.
+This contribution has been merged with the runner and data handoff. The SAM-specific docs, verification script, config and CSV are tracked; only the 700 full-resolution prediction masks remain in the separate handoff ZIP. Do not extract that ZIP over the repository: `scripts/extract_duong_masks_zip.py` validates the archive and installs only the masks. It does not include the local COCO dataset or checkpoint. Source images/GT remain available in the existing team data ZIP.
 
-Before committing, inspect `git status` and `git diff`. Keep the shared `results/raw_predictions.csv` from Sơn separate from `results/duong/raw_predictions.csv`. Review any common metadata changes caused by the runner; Dương's complete copies are already in `results/duong/`. Commit docs, config, the verification script, the CSV/metadata and the small smoke overlays. Do not force-add masks ignored by Git. Share the result ZIP separately for Hoàng Anh to access the masks. Hải Anh reviews/merges the branch and integrates Methods with the jointly authored Related Work section.
+Keep the shared `results/raw_predictions.csv` from Sơn separate from `results/duong/raw_predictions.csv`; they are independent runs. The runner now writes Dương's environment and state directly under `results/duong/`. Do not force-add full-resolution masks ignored by Git. The result ZIP must remain available separately if others need to reproduce the mask-level audit without rerunning inference. Hải Anh integrates Methods with the jointly authored Related Work section.

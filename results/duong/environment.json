@@ -1,0 +1,18 @@
+{
+  "created_at_utc": "2026-10-05T16:18:32.800432+00:00",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.11.9",
+  "torch": "2.6.0+cpu",
+  "cuda_available": false,
+  "requested_device": "cpu",
+  "torch_threads": 4,
+  "models": {
+    "sam_vit_b": {
+      "model_type": "vit_b",
+      "checkpoint_path": "weights/sam_vit_b_01ec64.pth",
+      "source_path": "../segment-anything",
+      "source_commit": "dca509fe793f601edb92606367a655c15ac00fdf",
+      "checkpoint_sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912"
+    }
+  }
+}

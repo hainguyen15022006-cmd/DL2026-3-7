@@ -218,3 +218,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Pretrained model checkpoints (download locally; do not commit)
+weights/
+*.pth
+*.pt
+
+# COCO source data and local handoff archive
+/data/
+
+# Full-resolution prediction masks are local run artifacts
+/results/masks/
+/results/duong/masks/
+/results/demo/
+/results/backups/
+
+# Local presentation build and validation artifacts
+/.codex-slide-build/
+/.codex-finalizer/

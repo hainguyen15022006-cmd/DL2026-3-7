@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "instances": 50,
+  "expected_rows": 700,
+  "verified_rows": 700,
+  "max_absolute_iou_difference": 0.0,
+  "errors": [],
+  "scope": "Recomputed IoU from delivered masks; inference was not rerun in this audit."
+}

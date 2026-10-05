@@ -1,0 +1,66 @@
+{
+  "protocol_version": 1,
+  "seed": 2026,
+  "manifest_path": "configs/eval_manifest.json",
+  "prompt_json_path": "results/prompts.json",
+  "prompt_csv_path": "results/prompts.csv",
+  "raw_results_path": "results/duong/raw_predictions.csv",
+  "mask_directory": "results/duong/masks",
+  "environment_path": "results/duong/environment.json",
+  "run_state_path": "results/duong/run_state.json",
+  "models": {
+    "sam_vit_b": {
+      "model_type": "vit_b",
+      "checkpoint_path": "weights/sam_vit_b_01ec64.pth",
+      "source_path": "../segment-anything",
+      "source_commit": "dca509fe793f601edb92606367a655c15ac00fdf"
+    }
+  },
+  "prompt_protocol": {
+    "clean_trial": 0,
+    "noise_levels": [
+      0.1,
+      0.2
+    ],
+    "noisy_trials": [
+      1,
+      2,
+      3
+    ],
+    "direction_candidates": [
+      [
+        -1,
+        -1
+      ],
+      [
+        -1,
+        1
+      ],
+      [
+        1,
+        -1
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "direction_selection": "random.Random(seed).sample(candidates, 3) in manifest order",
+    "point_rule": "First row-major GT pixel at maximum Euclidean distance to background",
+    "box_rule": "Inclusive tight box of the GT mask",
+    "shift_rule": "dx=round(sx*a*bbox_width), dy=round(sy*a*bbox_height), then coordinate-wise image clipping",
+    "repair_outside_point": false
+  },
+  "setups": {
+    "setup1": "MobileSAM versus SAM ViT-B on clean point and clean box prompts",
+    "setup2": "Clean point versus clean box on SAM ViT-B; reuses Setup 1 SAM rows",
+    "setup3": "SAM ViT-B robustness at noise levels 0.1 and 0.2 with three trials"
+  },
+  "inference": {
+    "multimask_output": false,
+    "device": "auto",
+    "save_masks": true,
+    "seconds_scope": "predict call for one prompt only",
+    "encode_seconds_scope": "set_image call once per model and image"
+  }
+}

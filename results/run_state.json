@@ -1,0 +1,13 @@
+{
+  "expected_rows": 800,
+  "present_rows": 800,
+  "ok_rows": 800,
+  "error_rows": 0,
+  "missing_rows": 0,
+  "unexpected_rows": 0,
+  "complete": true,
+  "all_ok": true,
+  "missing_run_ids": [],
+  "error_run_ids": [],
+  "unexpected_run_ids": []
+}

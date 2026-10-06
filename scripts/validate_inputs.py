@@ -43,10 +43,12 @@ def main() -> int:
             limit=10 if args.smoke else None,
         )
     except DataContractError as error:
-        print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=False, indent=2))
+        # Escape non-ASCII paths/messages so output works in Windows consoles
+        # whose active code page cannot encode the user's project directory.
+        print(json.dumps({"status": "error", "error": str(error)}, ensure_ascii=True, indent=2))
         return 1
 
-    print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    print(json.dumps(report.to_dict(), ensure_ascii=True, indent=2))
     return 0
 
 

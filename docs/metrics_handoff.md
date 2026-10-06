@@ -48,7 +48,19 @@ Run the hand-calculated unit tests:
 python -m unittest discover -s tests -v
 ```
 
-Optionally recompute IoU and Dice from saved masks and compare them with the runner's recorded IoU:
+Reproduce the committed result tables and three figures from the tracked
+800-row runner log (the path available on a fresh clone):
+
+```powershell
+python scripts/make_plots.py `
+  --input results/raw_predictions.csv `
+  --prompts results/prompts.csv `
+  --output-dir results/metrics
+```
+
+If all **800 masks from the same shared run** become available, first
+independently recompute IoU and Dice from those masks and compare them with
+the runner's IoU:
 
 ```powershell
 python scripts/evaluate_masks.py `
@@ -57,16 +69,10 @@ python scripts/evaluate_masks.py `
   --output results/per_run_metrics.csv
 ```
 
-The command exits non-zero if a mask is missing, malformed, has the wrong shape or disagrees with the recorded IoU beyond `1e-9`.
-
-Create all result tables and three figures:
-
-```powershell
-python scripts/make_plots.py `
-  --input results/per_run_metrics.csv `
-  --prompts results/prompts.csv `
-  --output-dir results/metrics
-```
+The audit exits non-zero if a prediction mask is missing, malformed, has the
+wrong shape or disagrees with the recorded IoU beyond `1e-9`. Only after it passes
+should `make_plots.py --input results/per_run_metrics.csv` be used. Dương's
+separate 700-mask run is not a substitute for the shared run's SAM masks.
 
 Audit row counts and numeric traceability against the original run log:
 
@@ -80,7 +86,9 @@ This check verifies that run IDs are unchanged, group counts match, mean IoU val
 
 For a read-only check of a CSV supplied through a pipe, use `--input -`.
 
-If masks are not available on the reporting machine, `results/raw_predictions.csv` can be used directly because the runner already records IoU. The report must then say that the committed table used runner-recorded IoU and that the mask-level recomputation was not performed on that machine.
+The committed tables use runner-recorded IoU: full masks for the shared run
+were unavailable when these tables were generated. The report must state
+this, rather than claiming all 800 rows received mask-level verification.
 
 ## Outputs
 
@@ -101,4 +109,8 @@ Difference signs are fixed as follows:
 
 ## Required handoffs from other members
 
-Before final tables can be generated on this branch, integrate the fixed manifest and GT masks from the data owner, `results/prompts.csv` and the experiment runner contract from the prompt owner, and the final `raw_predictions.csv` plus local mask archive from both model owners. Do not copy only the CSV if mask-level verification and qualitative examples are required.
+The integrated branch now contains the fixed manifest, prompt table and
+shared 800-row log. COCO images/GT and full masks remain outside Git. The
+full shared-run mask archive is still required for an independent audit of
+all 800 IoUs. The English Results/Discussion draft is in
+`report/results_discussion.md`; it must be reviewed with the final report.

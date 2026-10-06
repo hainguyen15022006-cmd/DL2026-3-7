@@ -162,6 +162,23 @@ def write_smoke_csv(path: Path, rows: list[SmokeRow]) -> None:
             writer.writerow(row.as_dict())
 
 
+def smoke_is_complete(rows: list[SmokeRow], instance_count: int) -> bool:
+    """Require one successful clean point and box result per chosen instance."""
+    if instance_count < 1 or len(rows) != 2 * instance_count:
+        return False
+    groups: dict[int, set[str]] = {}
+    for row in rows:
+        if row.status != "ok" or row.noise_level != 0 or row.trial != 0:
+            return False
+        types = groups.setdefault(row.annotation_id, set())
+        if row.prompt_type in types or row.prompt_type not in {"point", "box"}:
+            return False
+        types.add(row.prompt_type)
+    return len(groups) == instance_count and all(
+        types == {"point", "box"} for types in groups.values()
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -188,6 +205,8 @@ def main() -> int:
         "--out", type=Path, default=Path("results/smoke/mobile_sam")
     )
     args = parser.parse_args()
+    if not 1 <= args.n <= 50:
+        parser.error("--n must be between 1 and 50")
 
     config_path = args.config if args.config.is_absolute() else ROOT / args.config
     config = _load_config(config_path)
@@ -359,6 +378,9 @@ def main() -> int:
             f"abs_diff>0.01: {n_with_diff}/{len(subset)}"
         )
 
+    if not smoke_is_complete(smoke_rows, len(instances)):
+        print("ERROR: smoke test is incomplete or contains failed predictions", file=sys.stderr)
+        return 1
     return 0
 
 

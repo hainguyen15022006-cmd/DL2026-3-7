@@ -30,6 +30,12 @@ evaluation, inference, and a single-image demo instead. See
   audit are **not stored on GitHub**. They must be installed from Dương's
   separate handoff ZIP or reproduced by inference before the audit can be
   repeated on a new checkout.
+- `results/smoke/mobile_sam/`: 20 fixed clean-prompt MobileSAM smoke results
+  and overlays for the first ten instances; these are not the full 100
+  prediction masks used by Setup 1.
+- `results/metrics/`: tables and figures derived from the **shared** 800-row
+  CSV. See [result provenance](results/metrics/SOURCE.md) and the
+  [Results/Discussion draft](report/results_discussion.md).
 
 COCO images/GT masks, pretrained checkpoints, virtual environments, and full
 prediction masks are not committed. The `status=ok` CSV rows alone do not prove
@@ -50,6 +56,7 @@ python3.12 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install torch torchvision
 .venv/bin/python -m pip install -r requirements-inference.txt
+.venv/bin/python -m pip install -r requirements-metrics.txt
 ```
 
 Windows PowerShell:
@@ -59,13 +66,14 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install torch torchvision
 .\.venv\Scripts\python.exe -m pip install -r requirements-inference.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-metrics.txt
 ```
 
 For a CSV/mask review, PyTorch and model checkpoints are unnecessary: install
-only `requirements.txt` and run the checks in section 4. Install
-`requirements-inference.txt` (and a suitable PyTorch/TorchVision pair) when
-running either pretrained model. The exact package
-versions observed for Sơn's run are in `requirements-son.txt` and
+`requirements.txt` and `requirements-metrics.txt` for the full test suite and
+plots, then run the checks in section 4. Install `requirements-inference.txt`
+(and a suitable PyTorch/TorchVision pair) when running either pretrained model.
+The exact package versions observed for Sơn's run are in `requirements-son.txt` and
 `results/environment.json`; Dương's versions are in
 `results/duong/requirements-used.txt` and `results/duong/environment.json`.
 Those recorded environments differ, so byte-identical model outputs across
@@ -229,6 +237,28 @@ containing `mask.png` (white object on black background), `overlay.png` (green
 prediction and yellow prompt), and `result.json`. It does not compute IoU for
 an arbitrary image because there is no ground-truth mask. This is a
 command-line demo, **not** a web upload interface.
+
+## 7. Reproduce result tables and figures
+
+The committed tables use the runner-recorded IoU values in the shared
+`results/raw_predictions.csv`; full prediction masks for that specific run are
+not bundled. Install the plotting dependencies and regenerate the tables and
+three figures from the tracked CSVs:
+
+```bash
+.venv/bin/python -m pip install -r requirements-metrics.txt
+.venv/bin/python scripts/make_plots.py --input results/raw_predictions.csv --prompts results/prompts.csv --output-dir results/metrics
+.venv/bin/python scripts/check_metrics_outputs.py --raw results/raw_predictions.csv --metrics-dir results/metrics
+```
+
+On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe`.
+The check verifies row IDs, group counts, mean IoU, failure counts and paired
+counts against the original log. It does **not** prove that every prediction
+mask is available or independently re-run inference. If the 800 masks from
+the **same shared run** are restored, `scripts/evaluate_masks.py` can first
+recompute IoU and Dice from each mask and its GT. Dương's separate 700-mask
+archive cannot replace the SAM masks of the shared run. See the
+[metrics handoff](docs/metrics_handoff.md) for both paths and limitations.
 
 ## Reporting and limitations
 

@@ -6,7 +6,7 @@
 |---|---|
 | MobileSAM repository | https://github.com/ChaoningZhang/MobileSAM |
 | MobileSAM paper | Zhang et al., "Faster Segment Anything: Towards Lightweight SAM for Mobile Applications", 2023 — https://arxiv.org/abs/2306.14289 |
-| Checkpoint download | https://github.com/ChaoningZhang/MobileSAM/blob/master/weights/mobile_sam.pt |
+| Checkpoint at pinned commit | https://github.com/ChaoningZhang/MobileSAM/blob/f706ad9c4eb7f219c00d9050e46328518ffb65d2/weights/mobile_sam.pt |
 | SAM repository | https://github.com/facebookresearch/segment-anything |
 | SAM paper | Kirillov et al., "Segment Anything", 2023 — https://arxiv.org/abs/2304.02643 |
 
@@ -53,6 +53,8 @@ The local file `weights/mobile_sam.pt` was verified on the group machine:
 | SHA-256 | `6dbb90523a35330fedd7f1d3dfc66f995213d81b29a5ca8108dbcdd4e37d6c2f` | ✅ |
 
 Both values match `results/environment.json`.
+These are fingerprints of the checkpoint used in the recorded run, not
+cryptographic signatures published by the model authors.
 
 ## Windows install steps
 
@@ -107,4 +109,3 @@ Both values match `results/environment.json`.
 > **⚠ Weights are not committed to Git.** The `.gitignore` excludes `weights/`.
 > Every team member must download or copy the checkpoint locally and verify the
 > hash before running experiments.
-

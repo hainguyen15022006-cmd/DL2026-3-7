@@ -53,7 +53,14 @@ point and box prompts generated from a fixed set of ground-truth masks, then
 examines how prompt type and controlled spatial shifts affect the output.
 [SAM paper](https://arxiv.org/abs/2304.02643)
 
-[SAM ViT-B owner: add paragraph]
+The official SAM release includes a ViT-B checkpoint, which we use as the
+main model rather than training a new network. The same `SamPredictor`
+interface accepts the original-resolution image and the stored point or box
+coordinates. We hold the image-instance set and prompts fixed across the two
+models; therefore the comparison describes their observed behavior under
+matched inputs, not the isolated effect of encoder size. The exact source
+revision and checkpoint fingerprint are recorded in the repository's
+`README.md` and `results/environment.json`.
 
 ### MobileSAM
 
@@ -77,4 +84,3 @@ prompts and controlled shifts from the ground-truth bounding box to measure
 sensitivity to prompt geometry across fixed COCO val2017 instances. Because the
 prompts are simulated from ground truth, this experiment measures responses to
 controlled inputs rather than natural user behavior. [COCO dataset](https://cocodataset.org/#download)
-

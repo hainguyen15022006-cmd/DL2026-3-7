@@ -1,28 +1,31 @@
 # Slide 3: Key Results
 
-## Prompt type and shift sensitivity on SAM ViT-B
+## Baseline comparison and prompt sensitivity
 
+![Clean MobileSAM and SAM ViT-B mean IoU by prompt type](../results/metrics/figures/model_prompt_clean.png)
 ![SAM ViT-B mean IoU under clean, 10%, and 20% prompt shifts](../results/metrics/figures/sam_noise_robustness.png)
 
 ### On-slide findings
 
-- **Clean prompts:** box reached **0.783 mean IoU**, compared with **0.468** for point. The paired box-minus-point difference was **+0.315**, and box performed better on **43 of 50** instances.
-- **20% shift:** mean IoU fell to **0.372** for box and **0.335** for point. The paired noisy-minus-clean changes were **-0.412** and **-0.134**, respectively.
-- **Prompt quality check:** at 20% shift, **73.3%** of point prompts remained inside GT. Noisy boxes retained **0.498 mean IoU** with the clean box.
+- **Setup 1:** On clean prompts, MobileSAM exceeded SAM ViT-B on this sample: box **0.803 vs 0.783**, point **0.538 vs 0.468** mean IoU.
+- **Setup 2:** For SAM ViT-B, clean box exceeded point by **+0.315 paired mean IoU** (43/50 instances).
+- **Setup 3:** At 20% shift, SAM box fell **0.783 → 0.372** and point **0.468 → 0.335** mean IoU.
 
 > **Evaluation scope:** 50 fixed COCO val2017 instances, three shifted trials per noise level, seed 2026. All 800 scheduled model-prompt runs have `status=ok`.
 
 ## Suggested slide layout
 
 - Place the title at the top.
-- Use the robustness figure on the left, covering about two-thirds of the slide.
-- Put the three findings on the right.
+- Use the clean comparison and robustness figures side by side.
+- Keep only the three one-line findings beneath or beside the figures.
 - Keep the evaluation scope as a small footer.
 
 ## Number traceability
 
 | Slide value | CSV source | Row or calculation |
 |---|---|---|
+| 0.803 MobileSAM clean box IoU | `results/metrics/summary_metrics.csv` | `mobile_sam`, `box`, `noise_level=0.0`, `mean_iou` |
+| 0.538 MobileSAM clean point IoU | `results/metrics/summary_metrics.csv` | `mobile_sam`, `point`, `noise_level=0.0`, `mean_iou` |
 | 0.783 clean box mean IoU | `results/metrics/summary_metrics.csv` | `sam_vit_b`, `box`, `noise_level=0.0`, `mean_iou` |
 | 0.468 clean point mean IoU | `results/metrics/summary_metrics.csv` | `sam_vit_b`, `point`, `noise_level=0.0`, `mean_iou` |
 | +0.315 paired box-minus-point | `results/metrics/paired_summary.csv` | `setup2_box_minus_point`, `mean_difference` |
@@ -38,7 +41,7 @@
 <details>
 <summary>Speaker notes</summary>
 
-The clean-prompt comparison uses the same 50 annotation IDs for point and box. Box prompts produced higher IoU on most instances, although point prompts were higher in seven cases. Under the 20% shift, both prompt types lost mean IoU. The average reduction was larger for boxes. Prompt-quality measurements confirm that a larger shift moved more points outside the object and reduced box overlap. These results describe a small fixed COCO subset with simulated prompts, not a real user study.
+Both models received the same 100 clean prompts. MobileSAM's small numerical lead on this fixed 50-instance sample is descriptive, not a general superiority claim. For SAM ViT-B, the clean box beat the clean point on 43 of 50 paired instances. Under a 20% shift, both prompt types lost mean IoU; 73.3% of shifted points still lay inside GT and shifted boxes had 0.498 mean overlap with the clean box. Each noisy condition has three trials per instance, not 150 independent images. These results use simulated prompts, not a real user study. The shared-run 800 mask files were unavailable for independent mask-level verification of every reported IoU.
 
 </details>
 

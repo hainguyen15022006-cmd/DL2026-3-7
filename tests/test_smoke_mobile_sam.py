@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import replace
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,6 +23,7 @@ from scripts.smoke_mobile_sam import (  # noqa: E402
     compute_abs_diff,
     gt_contour_coords,
     lookup_committed_iou,
+    smoke_is_complete,
     write_smoke_csv,
 )
 from src.prompts import PromptRecord  # noqa: E402
@@ -191,6 +193,23 @@ class TestWriteSmokeCsv(unittest.TestCase):
 
             self.assertEqual(rows[0]["status"], "error")
             self.assertEqual(rows[0]["iou"], "")
+
+
+class TestSmokeCompleteness(unittest.TestCase):
+    def test_requires_successful_point_and_box_for_each_instance(self) -> None:
+        point = SmokeRow(
+            model="mobile_sam", image_id=7, annotation_id=11,
+            prompt_type="point", noise_level=0, trial=0, iou="0.8",
+            seconds="0.1", status="ok", seed=2026,
+            prompt_id="ann11_point_n00_t0", encode_seconds="1.0",
+            predicted_score="0.9", error="", committed_iou="0.8", abs_diff="0.0",
+        )
+        box = replace(point, prompt_type="box", prompt_id="ann11_box_n00_t0")
+        self.assertTrue(smoke_is_complete([point, box], 1))
+        self.assertFalse(smoke_is_complete([point], 1))
+        self.assertFalse(smoke_is_complete([point, replace(box, status="error")], 1))
+        self.assertFalse(smoke_is_complete([point, point], 1))
+        self.assertFalse(smoke_is_complete([], 0))
 
 
 class TestSmokeWeightsSkip(unittest.TestCase):

@@ -1,0 +1,9 @@
+model,prompt_type,noise_level,n_valid,n_error,n_low_iou,n_large_drop,n_failure,failure_rate
+mobile_sam,box,0.0,50,0,4,0,4,0.08
+mobile_sam,point,0.0,50,0,20,0,20,0.4
+sam_vit_b,box,0.0,50,0,4,0,4,0.08
+sam_vit_b,box,0.1,150,0,56,51,61,0.4066666666666667
+sam_vit_b,box,0.2,150,0,93,97,108,0.72
+sam_vit_b,point,0.0,50,0,27,0,27,0.54
+sam_vit_b,point,0.1,150,0,81,18,82,0.5466666666666666
+sam_vit_b,point,0.2,150,0,103,43,103,0.6866666666666666

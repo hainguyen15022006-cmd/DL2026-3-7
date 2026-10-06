@@ -1,0 +1,8 @@
+comparison,prompt_type,noise_level,n_pairs,mean_difference,median_difference,n_positive,n_tie,n_negative
+setup1_sam_vit_b_minus_mobile_sam,box,0.0,50,-0.019222250249932217,-0.006002248925666087,20,0,30
+setup1_sam_vit_b_minus_mobile_sam,point,0.0,50,-0.06999419549866284,-0.010615848998482147,12,0,38
+setup2_box_minus_point,point_vs_box,0.0,50,0.31516902826737453,0.21847097992317288,43,0,7
+setup3_noisy_minus_clean,box,0.1,150,-0.21214563798428587,-0.07941160881587078,19,0,131
+setup3_noisy_minus_clean,box,0.2,150,-0.41167316924770897,-0.3511237036871876,8,0,142
+setup3_noisy_minus_clean,point,0.1,150,-0.015138395529608169,0.0004476295289983778,79,4,67
+setup3_noisy_minus_clean,point,0.2,150,-0.13368080505026245,-0.002970929470537802,63,5,82

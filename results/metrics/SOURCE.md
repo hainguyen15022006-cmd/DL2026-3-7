@@ -23,4 +23,5 @@ mask against the fixed local GT and found **800/800 matches**. Independently,
 `scripts/evaluate_masks.py` returned 800 `ok` rows. This verifies the
 recorded IoUs against the delivered mask files; it does **not** prove that a
 fresh inference run on another machine will be byte-identical. The archive
-is an optional handoff artifact and is not committed to GitHub.
+is now available in the repository as `results.zip`; the loose extracted
+prediction-mask directory remains ignored by Git.

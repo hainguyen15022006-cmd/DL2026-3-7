@@ -39,11 +39,20 @@ evaluation, inference, and a single-image demo instead. See
 - `scripts/extract_shared_masks_zip.py`: verifies and installs the optional
   shared-run mask bundle without overwriting tracked CSVs or COCO data.
 
-COCO images/GT masks, pretrained checkpoints, virtual environments, and full
-prediction masks are not committed. The processed **evaluation dataset** has
-the public download link in `DATA.md`; the full **prediction-mask bundle** is
-a separate optional handoff artifact. The `status=ok` CSV rows alone do not
-prove that those prediction PNGs are present on a new machine.
+**Download the shared-run results:** [results.zip](results.zip) (800 predicted
+masks: 100 MobileSAM and 700 SAM ViT-B, plus the raw results and prompt CSVs).
+Its SHA-256 is
+`f3e2b6dd7b1640eedfd35bf5b1aede9fd76c66ff5aa11057a65ffd3943a7c073`.
+The ZIP contains binary masks, not the original COCO photographs. For a quick
+visual inspection, open the [qualitative examples](results/examples/figure_examples.png)
+and the [metric figures](results/metrics/figures/) in this repository.
+
+COCO images/GT masks, pretrained checkpoints, virtual environments, and the
+loose full-resolution prediction-mask directory are not committed. The
+processed **evaluation dataset** has the public download link in `DATA.md`;
+the shared-run prediction masks are downloadable in `results.zip` above. The
+`status=ok` CSV rows alone do not prove that the prediction PNGs have been
+installed on a new machine.
 
 ## 1. Get the repository and Python dependencies
 
@@ -183,13 +192,13 @@ That option should fail on a fresh clone until the masks are restored or
 inference has been rerun. `--dry-run` prints the planned matrix without
 loading the neural networks.
 
-If the group supplies either the complete
-`son_visualization_bundle_2026-10-06.zip` or its smaller `results.zip`, install
+Download [results.zip](results.zip) from this repository, or use the complete
+`son_visualization_bundle_2026-10-06.zip` if you have it. Install
 **only** the 800 masks from the shared run after installing the COCO data:
 
 ```bash
-.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/results.zip --check-only
-.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/results.zip
+.venv/bin/python scripts/extract_shared_masks_zip.py results.zip --check-only
+.venv/bin/python scripts/extract_shared_masks_zip.py results.zip
 .venv/bin/python scripts/check_experiment_matrix.py --require-masks
 ```
 
@@ -197,14 +206,15 @@ The installer checks all 800 mask IoUs against the tracked CSV and refuses
 to overwrite a different local mask. It compares both CSVs in either ZIP
 with the tracked files; the complete bundle's manifest is also checked. It
 does not extract CSV, manifest, COCO images, GT masks or macOS sidecar files.
-Neither ZIP is hosted in this GitHub repository; someone reproducing the
-project without one can rerun model inference from the documented checkpoints.
+The smaller `results.zip` is hosted in this GitHub repository; someone
+reproducing the project can either install it or rerun model inference from
+the documented checkpoints.
 The locally audited `results.zip` has SHA-256
 `f3e2b6dd7b1640eedfd35bf5b1aede9fd76c66ff5aa11057a65ffd3943a7c073`;
 the complete bundle has SHA-256
 `6edca33ca626a7aec86400f9fa15dca4f2c3f65a8209dfe173f4eed940c34575`.
-If the group publishes either file, add its download URL here so others can
-repeat the mask audit without rerunning inference.
+The complete bundle is a separate local handoff and is not required to
+repeat the shared-run mask audit.
 
 If you have `DL2026-3-7-duong-sam-vit-b-handoff.zip`, install **only** its 700
 prediction masks without overwriting source files or CSVs:
@@ -281,8 +291,9 @@ command-line demo, **not** a web upload interface.
 ## 7. Reproduce result tables and figures
 
 The committed tables use the runner-recorded IoU values in the shared
-`results/raw_predictions.csv`; full prediction masks for that specific run are
-not bundled. Install the plotting dependencies and regenerate the tables and
+`results/raw_predictions.csv`. The matching full prediction masks are now
+available in `results.zip`, but the original table-generation step used the
+CSV values. Install the plotting dependencies and regenerate the tables and
 three figures from the tracked CSVs:
 
 ```bash
@@ -294,8 +305,8 @@ three figures from the tracked CSVs:
 On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe`.
 The check verifies row IDs, group counts, mean IoU, failure counts and paired
 counts against the original log. It does **not** prove that every prediction
-mask is available or independently re-run inference. If the 800 masks from
-the **same shared run** are restored, `scripts/evaluate_masks.py` can first
+mask is installed or independently re-run inference. After installing the
+800 masks from the **same shared run**, `scripts/evaluate_masks.py` can first
 recompute IoU and Dice from each mask and its GT. Dương's separate 700-mask
 archive cannot replace the SAM masks of the shared run. See the
 [metrics handoff](docs/metrics_handoff.md) for both paths and limitations.

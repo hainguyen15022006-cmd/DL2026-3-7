@@ -41,7 +41,7 @@
 <details>
 <summary>Speaker notes</summary>
 
-Both models received the same 100 clean prompts. MobileSAM's small numerical lead on this fixed 50-instance sample is descriptive, not a general superiority claim. For SAM ViT-B, the clean box beat the clean point on 43 of 50 paired instances. Under a 20% shift, both prompt types lost mean IoU; 73.3% of shifted points still lay inside GT and shifted boxes had 0.498 mean overlap with the clean box. Each noisy condition has three trials per instance, not 150 independent images. These results use simulated prompts, not a real user study. The shared-run mask bundle arrived after the tables were generated; its 800 mask IoUs were subsequently verified against GT on 2026-10-06. The bundle is not hosted on GitHub.
+Both models received the same 100 clean prompts. MobileSAM's small numerical lead on this fixed 50-instance sample is descriptive, not a general superiority claim. For SAM ViT-B, the clean box beat the clean point on 43 of 50 paired instances. Under a 20% shift, both prompt types lost mean IoU; 73.3% of shifted points still lay inside GT and shifted boxes had 0.498 mean overlap with the clean box. Each noisy condition has three trials per instance, not 150 independent images. These results use simulated prompts, not a real user study. The shared-run mask bundle arrived after the tables were generated; its 800 mask IoUs were subsequently verified against GT on 2026-10-06. The matching masks are now downloadable as `results.zip` from the repository.
 
 </details>
 

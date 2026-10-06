@@ -63,7 +63,8 @@ runner CSV, which contains 800 `status=ok` rows. At the time these tables
 were made, the full prediction masks were unavailable. The group later
 received the matching shared-run mask bundle and independently checked all
 800 recorded IoUs against those masks and the fixed GT; see
-`results/metrics/SOURCE.md`. The bundle remains outside GitHub. Dương's 700
+`results/metrics/SOURCE.md`. The matching masks are now downloadable as
+`results.zip` from the repository. Dương's 700
 delivered masks belong to a separate SAM-only run and were not substituted.
 The sample is small and not class-balanced; COCO polygon-derived masks can also differ
 from perceived object boundaries. Only pretrained inference was performed:

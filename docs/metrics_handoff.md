@@ -115,8 +115,9 @@ Difference signs are fixed as follows:
 ## Required handoffs from other members
 
 The integrated branch contains the fixed manifest, prompt table and shared
-800-row log. COCO images/GT and full masks remain outside Git; the separate
-shared-run archive was received and audited on 2026-10-06. A third party
-still needs that archive or a fresh inference run to repeat the mask-level
+800-row log. COCO images/GT and loose full-resolution masks remain outside
+Git, but the shared-run `results.zip` is downloadable from the repository.
+It was audited on 2026-10-06. A third party needs this ZIP and the separate
+COCO evaluation-data ZIP, or a fresh inference run, to repeat the mask-level
 audit. The English Results/Discussion draft is in
 `report/results_discussion.md`; it must be reviewed with the final report.

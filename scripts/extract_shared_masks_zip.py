@@ -1,7 +1,8 @@
-"""Validate and install only the 800 masks from Sơn's shared-run bundle.
+"""Validate and install only the 800 masks from Sơn's shared-run archive.
 
-The archive includes copies of CSV, manifest and COCO data, but this command
-never extracts or overwrites those files. Install the processed COCO data first.
+Accept either the complete bundle or a results-only ZIP. Neither format may
+overwrite tracked CSV/manifest files or COCO data. Install the processed COCO
+data first.
 """
 
 from __future__ import annotations
@@ -57,23 +58,30 @@ def load_expected_rows(root: Path) -> list[dict[str, str]]:
 
 def archive_prefix(names: set[str], expected_paths: set[str]) -> str:
     for prefix in ARCHIVE_PREFIXES:
-        found = {name[len(prefix):] for name in names if name.startswith(prefix + "results/masks/")}
+        found = {
+            name[len(prefix):]
+            for name in names
+            if name.startswith(prefix + "results/masks/") and name.endswith(".png")
+        }
         if found == expected_paths:
             return prefix
     raise ValueError("ZIP mask paths do not match the 800 paths in the tracked shared-run CSV")
 
 
-def compare_metadata(archive: zipfile.ZipFile, prefix: str, root: Path) -> None:
+def compare_metadata(archive: zipfile.ZipFile, prefix: str, root: Path) -> bool:
     for rel in ("results/raw_predictions.csv", "results/prompts.csv"):
         stored = csv_rows(archive.read(prefix + rel))
         tracked = csv_rows((root / rel).read_bytes())
         if stored != tracked:
             raise ValueError(f"ZIP {rel} differs from the tracked repository version")
     rel = "configs/eval_manifest.json"
+    if prefix + rel not in archive.namelist():
+        return False  # Results-only archives do not include the manifest.
     stored_manifest = json.loads(archive.read(prefix + rel))
     tracked_manifest = json.loads((root / rel).read_text(encoding="utf-8"))
     if stored_manifest != tracked_manifest:
         raise ValueError("ZIP manifest differs from the fixed tracked manifest")
+    return True
 
 
 def binary_mask(data: bytes) -> np.ndarray:
@@ -118,7 +126,7 @@ def main() -> int:
         corrupt = archive.testzip()
         if corrupt is not None:
             raise ValueError(f"ZIP CRC validation failed: {corrupt}")
-        compare_metadata(archive, prefix, ROOT)
+        manifest_in_zip = compare_metadata(archive, prefix, ROOT)
 
         # Validate every IoU and every existing destination before writing any file.
         missing = []
@@ -148,6 +156,7 @@ def main() -> int:
         "already_present": already_present,
         "installed": 0 if args.check_only else len(missing),
         "check_only": args.check_only,
+        "manifest_in_zip": manifest_in_zip,
         "note": "All 800 mask IoUs match the tracked CSV. Only prediction PNGs are installed.",
     }, indent=2))
     return 0

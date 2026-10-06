@@ -15,6 +15,7 @@ from scripts.extract_shared_masks_zip import (
     archive_prefix,
     binary_mask,
     check_member_paths,
+    compare_metadata,
     csv_rows,
     verify_iou,
 )
@@ -38,6 +39,28 @@ class SharedMaskInstallerTests(unittest.TestCase):
         self.assertEqual(archive_prefix(names, expected), "son_visualization_bundle/")
         with self.assertRaises(ValueError):
             archive_prefix(names, {"results/masks/sam_vit_b/b.png"})
+
+    def test_results_only_zip_ignores_macos_sidecars_and_directories(self) -> None:
+        expected = {"results/masks/sam_vit_b/a.png"}
+        names = expected | {
+            "results/masks/",
+            "results/masks/.DS_Store",
+            "__MACOSX/results/masks/sam_vit_b/._a.png",
+        }
+        self.assertEqual(archive_prefix(names, expected), "")
+
+    def test_results_only_zip_compares_csv_without_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "results").mkdir()
+            for name in ("raw_predictions.csv", "prompts.csv"):
+                (root / "results" / name).write_text("id,value\na,1\n", encoding="utf-8")
+            archive_path = root / "results.zip"
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                for name in ("raw_predictions.csv", "prompts.csv"):
+                    archive.write(root / "results" / name, f"results/{name}")
+            with zipfile.ZipFile(archive_path) as archive:
+                self.assertFalse(compare_metadata(archive, "", root))
 
     def test_csv_line_endings_do_not_change_rows(self) -> None:
         self.assertEqual(csv_rows(b"run_id,iou\r\na,0.5\r\n"), csv_rows(b"run_id,iou\na,0.5\n"))

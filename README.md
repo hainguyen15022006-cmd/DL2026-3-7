@@ -183,23 +183,28 @@ That option should fail on a fresh clone until the masks are restored or
 inference has been rerun. `--dry-run` prints the planned matrix without
 loading the neural networks.
 
-If the group supplies `son_visualization_bundle_2026-10-06.zip`, install
+If the group supplies either the complete
+`son_visualization_bundle_2026-10-06.zip` or its smaller `results.zip`, install
 **only** the 800 masks from the shared run after installing the COCO data:
 
 ```bash
-.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/son_visualization_bundle_2026-10-06.zip --check-only
-.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/son_visualization_bundle_2026-10-06.zip
+.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/results.zip --check-only
+.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/results.zip
 .venv/bin/python scripts/check_experiment_matrix.py --require-masks
 ```
 
 The installer checks all 800 mask IoUs against the tracked CSV and refuses
-to overwrite a different local mask. It does not extract the ZIP's copies of
-CSV, manifest, COCO images or GT masks. The full bundle is **not hosted in
-this GitHub repository**; someone reproducing the project without it can
-rerun model inference from the documented checkpoints. A separately hosted
-bundle should be accompanied by its download URL and checksum.
-The locally audited archive has SHA-256
+to overwrite a different local mask. It compares both CSVs in either ZIP
+with the tracked files; the complete bundle's manifest is also checked. It
+does not extract CSV, manifest, COCO images, GT masks or macOS sidecar files.
+Neither ZIP is hosted in this GitHub repository; someone reproducing the
+project without one can rerun model inference from the documented checkpoints.
+The locally audited `results.zip` has SHA-256
+`f3e2b6dd7b1640eedfd35bf5b1aede9fd76c66ff5aa11057a65ffd3943a7c073`;
+the complete bundle has SHA-256
 `6edca33ca626a7aec86400f9fa15dca4f2c3f65a8209dfe173f4eed940c34575`.
+If the group publishes either file, add its download URL here so others can
+repeat the mask audit without rerunning inference.
 
 If you have `DL2026-3-7-duong-sam-vit-b-handoff.zip`, install **only** its 700
 prediction masks without overwriting source files or CSVs:

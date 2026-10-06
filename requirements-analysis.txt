@@ -1,0 +1,2 @@
+-r requirements-metrics.txt
+pandas>=2.2,<3

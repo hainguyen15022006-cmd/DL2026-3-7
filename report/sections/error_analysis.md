@@ -3,12 +3,13 @@
 ### Failure definition
 We define a failure as an IoU below 0.5 (F1) or, for shifted prompts, an IoU
 drop of at least 0.2 relative to the clean prompt on the same model, instance
-and prompt type (F2). This definition was fixed before we inspected any
-results (docs/failure_definition.md). All 800 planned runs completed with
-status ok, so no run was excluded.
+and prompt type (F2). We apply these thresholds consistently to all rows as
+descriptive labels; the repository does not establish preregistration of
+the thresholds. See `docs/failure_definition.md`. All 800 planned runs
+completed with status ok, so no run was excluded.
 
 ### Failure rates by condition
-Table X reports results on 50 COCO val2017 instances (one per image). Each
+The table below reports results on 50 COCO val2017 instances (one per image). Each
 shifted condition contains 150 runs (3 trials x 50 instances).
 
 | Model | Prompt | Shift | n | Mean IoU | Median IoU | Failures | Rate |
@@ -66,7 +67,8 @@ reliable indicator of correctness in these cases: both degraded examples
 below had scores above 0.8.
 
 ### Qualitative examples
-Figure Y shows four examples chosen by a predefined rule: the two
+The saved qualitative figure in `results/examples/figure_examples.png` shows
+four examples chosen by a reproducible post-hoc rule: the two
 highest-IoU clean-box cases of SAM ViT-B and the two largest IoU drops at 20%
 shift. Each panel shows the image, ground truth, prompt and predicted mask,
 with annotation_id and IoU.
@@ -75,21 +77,27 @@ with annotation_id and IoU.
 - Degraded case 1: annotation 36588, 20% shift, trial 3. IoU fell from 0.968
   to approximately 0 (below 0.001) although the shifted box still overlaps
   the tight box by 0.494. The predicted score remained high (0.81), so the
-  mask was produced with high confidence but did not match the target object.
-  [TBD after viewing the overlay: what the predicted mask covers.]
+  mask was produced with a high *model-predicted quality score* but did not
+  match the target object. In the overlay, the shifted-box prediction covers
+  foliage above the bird rather than the bird selected by the GT mask.
 - Degraded case 2: annotation 339546, 20% shift, trial 2. IoU fell from 0.950
   to 0.000 with box overlap 0.466 and a predicted score of 0.84.
-  [TBD after viewing the overlay.]
+  The overlay shows a prediction concentrated around the clock's rim or
+  adjacent structure rather than the annotated clock face. This describes
+  the visible mismatch; the image alone cannot establish why SAM chose it.
 
-These examples are illustrative and do not represent overall frequency. Cause
-descriptions are based on visual inspection and are not causal claims.
+These examples are illustrative and do not represent overall frequency.
+Descriptions are based on visual inspection and are not causal claims. The
+saved overlay panels are available in `results/examples/`; regenerating them
+requires the selected prediction masks from the **shared** 800-row run.
 
 ## Conclusion and Limitations
 - On SAM ViT-B, a clean box gave much higher IoU than a clean point (mean
   paired difference 0.315; 8.0% versus 54.0% failure rate).
-- Shifting prompts by 10-20% of the object size lowered IoU, more strongly
-  for boxes in absolute terms. A point that left the object almost always led
-  to failure (mean IoU 0.08-0.15).
+- Shifting prompts by 10-20% of the object's bounding-box dimensions lowered
+  IoU, more strongly for boxes in absolute terms. Among shifted point prompts
+  that left the object, 10/12 runs at 10% shift and 36/40 at 20% shift met
+  the descriptive failure criterion; the trials are not independent images.
 - SAM ViT-B and MobileSAM differ little on clean prompts in this sample.
 - Prompts are simulated from ground-truth masks and are cleaner than real
   user input; shifts follow a fixed rule and are not a user study.
@@ -97,8 +105,10 @@ descriptions are based on visual inspection and are not causal claims.
   three trials per instance are not independent, so results may not
   generalize. We report no significance tests.
 - Robustness was tested on SAM ViT-B only, not on MobileSAM.
-- Ground-truth annotations contain labeling noise.
+- COCO polygon-derived GT may not match every visually perceived boundary;
+  this can affect absolute IoU, especially for thin or occluded regions.
 - We used pretrained checkpoints only; no training or fine-tuning was
   performed.
-- Timing comparisons hold only for our hardware: [TBD device and timing from
-  results/environment.json; runs were logged on CPU].
+- The shared run recorded CPU inference in `results/environment.json`.
+  MobileSAM and SAM ViT-B execution windows overlapped, so these logs do not
+  support a hardware-fair speed comparison.

@@ -14,16 +14,76 @@ import pandas as pd
 from PIL import Image
 
 OUT = Path("results/examples")
-OUT.mkdir(parents=True, exist_ok=True)
 
 sel = pd.read_csv("results/selected_examples.csv")
 prompts = pd.read_csv("results/prompts.csv").set_index("prompt_id")
 raw = pd.read_csv("results/raw_predictions.csv")
-manifest = {r["annotation_id"]: r for r in json.load(open("configs/eval_manifest.json"))}
+with open("configs/eval_manifest.json", encoding="utf-8") as manifest_file:
+    manifest = {r["annotation_id"]: r for r in json.load(manifest_file)}
 
 
 def load_mask(path):
     return np.array(Image.open(path).convert("L")) > 127
+
+
+def clean_prediction(row):
+    """Find the shared-run clean reference for one selected SAM prediction."""
+    clean_id = f"ann{int(row['annotation_id'])}_{row['prompt_type']}_n00_t0"
+    matches = raw[(raw.prompt_id == clean_id) & (raw.model == "sam_vit_b")]
+    if len(matches) != 1:
+        raise SystemExit(f"Expected exactly one shared-run clean prediction: {clean_id}")
+    return clean_id, matches.iloc[0]
+
+
+def preflight():
+    """Validate every input before replacing any saved qualitative figure."""
+    required = {}
+    for _, row in sel.iterrows():
+        if row["model"] != "sam_vit_b" or row["status"] != "ok":
+            raise SystemExit(f"Unsupported selected result: {row['run_id']}")
+        matches = raw[(raw.run_id == row["run_id"]) & (raw.model == "sam_vit_b")]
+        if len(matches) != 1:
+            raise SystemExit(f"Selected result is not unique in the shared run: {row['run_id']}")
+        source = matches.iloc[0]
+        if abs(float(source["iou"]) - float(row["iou"])) > 1e-9:
+            raise SystemExit(f"Selected IoU differs from shared-run CSV: {row['run_id']}")
+        required[str(source["run_id"])] = source
+        _, clean_row = clean_prediction(row)
+        required[str(clean_row["run_id"])] = clean_row
+
+    missing = []
+    for row in required.values():
+        ann = int(row["annotation_id"])
+        if ann not in manifest:
+            raise SystemExit(f"Annotation {ann} is absent from the fixed manifest")
+        paths = (
+            Path(row["mask_path"]),
+            Path("data/coco/gt_masks") / f"{ann}.png",
+            Path("data/coco/val2017") / manifest[ann]["file_name"],
+        )
+        missing.extend(str(path) for path in paths if not path.is_file())
+    if missing:
+        preview = "\n  ".join(sorted(set(missing))[:12])
+        raise SystemExit(
+            "Cannot regenerate overlays: required files are missing. The prediction "
+            "masks must come from the shared 800-row run, not Dương's separate "
+            f"700-row run. Missing:\n  {preview}"
+        )
+
+    for row in required.values():
+        ann = int(row["annotation_id"])
+        pred = load_mask(row["mask_path"])
+        gt = load_mask(Path("data/coco/gt_masks") / f"{ann}.png")
+        if pred.shape != gt.shape:
+            raise SystemExit(f"Prediction/GT shape mismatch: {row['run_id']}")
+        union = np.logical_or(pred, gt).sum()
+        calculated = float(np.logical_and(pred, gt).sum() / union) if union else 1.0
+        if abs(calculated - float(row["iou"])) > 1e-9:
+            raise SystemExit(
+                f"Mask does not reproduce the shared-run IoU for {row['run_id']}: "
+                f"mask={calculated:.9f}, CSV={float(row['iou']):.9f}. "
+                "Do not substitute masks from another run."
+            )
 
 
 def overlay(ax, img, mask, color, alpha=0.5):
@@ -52,9 +112,8 @@ def render(row, path_png=None):
     pred = load_mask(row["mask_path"])
     p = prompts.loc[row["prompt_id"]]
 
-    clean_id = f"ann{ann}_{row['prompt_type']}_n00_t0"
+    clean_id, clean_row = clean_prediction(row)
     clean_p = prompts.loc[clean_id]
-    clean_row = raw[(raw.prompt_id == clean_id) & (raw.model == "sam_vit_b")].iloc[0]
     clean_pred = load_mask(clean_row["mask_path"])
 
     fig, axs = plt.subplots(1, 3, figsize=(13, 4.6))
@@ -87,19 +146,29 @@ def render(row, path_png=None):
     return fig
 
 
-for i, (_, row) in enumerate(sel.iterrows(), 1):
-    fig = render(row, OUT / f"example_{i}_{row['group']}_ann{int(row['annotation_id'])}.png")
-    plt.close(fig)
-    print("saved example", i, row["prompt_id"], "IoU", round(row["iou"], 4))
+def main():
+    preflight()
+    OUT.mkdir(parents=True, exist_ok=True)
+    files = []
+    for i, (_, row) in enumerate(sel.iterrows(), 1):
+        path = OUT / f"example_{i}_{row['group']}_ann{int(row['annotation_id'])}.png"
+        fig = render(row, path)
+        plt.close(fig)
+        files.append(path)
+        print("saved example", i, row["prompt_id"], "IoU", round(row["iou"], 4))
 
-# Combined figure (stack the 4 images)
-files = sorted(OUT.glob("example_*.png"))
-imgs = [Image.open(f) for f in files]
-W = max(i.width for i in imgs)
-canvas = Image.new("RGB", (W, sum(i.height for i in imgs)), "white")
-y = 0
-for im in imgs:
-    canvas.paste(im, (0, y))
-    y += im.height
-canvas.save(OUT / "figure_examples.png")
-print("saved", OUT / "figure_examples.png")
+    # Stack only the images produced in this invocation, not stale files.
+    imgs = [Image.open(path) for path in files]
+    width = max(img.width for img in imgs)
+    canvas = Image.new("RGB", (width, sum(img.height for img in imgs)), "white")
+    y = 0
+    for img in imgs:
+        canvas.paste(img, (0, y))
+        y += img.height
+        img.close()
+    canvas.save(OUT / "figure_examples.png")
+    print("saved", OUT / "figure_examples.png")
+
+
+if __name__ == "__main__":
+    main()

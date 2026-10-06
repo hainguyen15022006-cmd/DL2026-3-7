@@ -260,6 +260,35 @@ recompute IoU and Dice from each mask and its GT. Dương's separate 700-mask
 archive cannot replace the SAM masks of the shared run. See the
 [metrics handoff](docs/metrics_handoff.md) for both paths and limitations.
 
+## 8. Reproduce the error and qualitative analysis
+
+The tracked failure tables and four example panels are described in
+[`report/sections/error_analysis.md`](report/sections/error_analysis.md).
+Install the additional analysis dependency, then regenerate the failure
+counts and prompt-quality checks from the **shared** 800-row log:
+
+```bash
+.venv/bin/python -m pip install -r requirements-analysis.txt
+.venv/bin/python scripts/analyze_failures.py
+.venv/bin/python scripts/check_prompt_quality.py
+.venv/bin/python scripts/check_zero_iou.py
+```
+
+These commands do not run SAM again. `analyze_failures.py` refreshes the
+tracked CSV analysis artifacts under `results/`; the numeric values must
+agree with `results/metrics/`. The four saved overlays can be viewed on a
+fresh clone, but regenerating them with `scripts/make_overlays.py` additionally
+requires the five relevant full-resolution prediction masks from the
+**same shared 800-row run**, as well as the COCO images/GT. The separate
+Dương masks must not be substituted. The overlay script checks mask paths
+and recorded IoUs before changing any saved example images. A fresh clone
+without those masks will print a clear missing-artifact message instead.
+
+The thresholds in [the failure definition](docs/failure_definition.md) are
+descriptive; the repository does not establish that they were preregistered
+before results were inspected. Example selection is reproducible but
+post-hoc, not a random sample.
+
 ## Reporting and limitations
 
 For Setup 1, compare MobileSAM and SAM ViT-B only on the same 100 clean

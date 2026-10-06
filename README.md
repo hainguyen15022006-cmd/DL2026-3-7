@@ -36,10 +36,14 @@ evaluation, inference, and a single-image demo instead. See
 - `results/metrics/`: tables and figures derived from the **shared** 800-row
   CSV. See [result provenance](results/metrics/SOURCE.md) and the
   [Results/Discussion draft](report/results_discussion.md).
+- `scripts/extract_shared_masks_zip.py`: verifies and installs the optional
+  shared-run mask bundle without overwriting tracked CSVs or COCO data.
 
 COCO images/GT masks, pretrained checkpoints, virtual environments, and full
-prediction masks are not committed. The `status=ok` CSV rows alone do not prove
-that those prediction PNGs are present on a new machine.
+prediction masks are not committed. The processed **evaluation dataset** has
+the public download link in `DATA.md`; the full **prediction-mask bundle** is
+a separate optional handoff artifact. The `status=ok` CSV rows alone do not
+prove that those prediction PNGs are present on a new machine.
 
 ## 1. Get the repository and Python dependencies
 
@@ -144,6 +148,19 @@ Check them with `shasum -a 256 weights/*` on macOS/Linux or
 `Get-FileHash weights\... -Algorithm SHA256` in PowerShell. A missing/wrong
 checkpoint prevents inference.
 
+For macOS/Linux, the checkpoint-copy commands are:
+
+```bash
+mkdir -p weights
+curl -fL --retry 3 -o weights/sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+cp ../MobileSAM/weights/mobile_sam.pt weights/mobile_sam.pt
+shasum -a 256 weights/sam_vit_b_01ec64.pth weights/mobile_sam.pt
+```
+
+Stop if either recorded checksum does not match. The source directories and
+checkpoints are **local dependencies**, not files that Git pushes with this
+repository.
+
 ## 4. Validate the experiment without rerunning 800 predictions
 
 macOS/Linux:
@@ -160,11 +177,29 @@ macOS/Linux:
 On Windows, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe` and
 use the same script arguments. The default matrix check expects 800 rows;
 the Dương configuration correctly expects 700 SAM-only rows. These checks
-validate IDs, conditions and recorded values, **not** the absent prediction
+validate IDs, conditions and recorded values, **not** the prediction
 masks. To require local PNGs too, add `--require-masks` to the matrix check.
 That option should fail on a fresh clone until the masks are restored or
 inference has been rerun. `--dry-run` prints the planned matrix without
 loading the neural networks.
+
+If the group supplies `son_visualization_bundle_2026-10-06.zip`, install
+**only** the 800 masks from the shared run after installing the COCO data:
+
+```bash
+.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/son_visualization_bundle_2026-10-06.zip --check-only
+.venv/bin/python scripts/extract_shared_masks_zip.py /path/to/son_visualization_bundle_2026-10-06.zip
+.venv/bin/python scripts/check_experiment_matrix.py --require-masks
+```
+
+The installer checks all 800 mask IoUs against the tracked CSV and refuses
+to overwrite a different local mask. It does not extract the ZIP's copies of
+CSV, manifest, COCO images or GT masks. The full bundle is **not hosted in
+this GitHub repository**; someone reproducing the project without it can
+rerun model inference from the documented checkpoints. A separately hosted
+bundle should be accompanied by its download URL and checksum.
+The locally audited archive has SHA-256
+`6edca33ca626a7aec86400f9fa15dca4f2c3f65a8209dfe173f4eed940c34575`.
 
 If you have `DL2026-3-7-duong-sam-vit-b-handoff.zip`, install **only** its 700
 prediction masks without overwriting source files or CSVs:

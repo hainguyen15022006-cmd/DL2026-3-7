@@ -1,143 +1,158 @@
-# Dữ liệu đánh giá - Lê Tấn Thành
+# Dataset and Data Preparation
 
-## Phạm vi bàn giao
+## Scope and version
 
-COCO 2017 **val2017**, 50 ảnh và 50 instance, một instance trên mỗi ảnh,
-`seed=2026`. Mười dòng đầu của manifest là tập smoke test. Danh sách này dùng
-chung cho cả ba setup. Đây là **tập đánh giá**, không có bước train/fine-tune
-và không tạo train/validation split riêng cho nhóm.
+The experiments use a fixed evaluation subset of **COCO 2017 val2017**:
+50 images, one selected instance per image, and `seed=2026`. The first ten
+entries of `configs/eval_manifest.json` form the smoke-test subset. All three
+experimental setups use the same 50 entries. The group does not create a
+training split or train/fine-tune a model on these images.
 
-Phần dữ liệu gồm ảnh gốc, GT masks, manifest, script chuẩn bị, ba overlay kiểm
-tra và tài liệu này. Prompt, mô hình, IoU và phân tích kết quả mô hình thuộc
-phần việc của các thành viên khác. Không có kết quả suy luận trong bộ bàn giao.
+The original images and COCO-derived ground-truth (GT) masks are distributed
+in a separate processed-data ZIP, not committed to Git. The manifest, data
+preparation code, validation code, three small alignment overlays and this
+document are committed. Model predictions are documented in `results/`.
 
-## Nguồn và điều kiện sử dụng
+## Official sources, licensing and processed-data link
 
-- Trang tải COCO: <https://cocodataset.org/#download>
-- Annotation chính thức: <http://images.cocodataset.org/annotations/annotations_trainval2017.zip>
-  (252,907,541 bytes khi tải ngày 05/10/2026, giờ Việt Nam).
-  Script chỉ giải nén `annotations/instances_val2017.json`.
-- Toàn bộ ảnh validation: <http://images.cocodataset.org/zips/val2017.zip>.
-  Để tránh tải ảnh ngoài tập đánh giá, script tải trực tiếp 50 ảnh đã chốt từ
-  `http://images.cocodataset.org/val2017/{file_name}`; không resize hoặc nén lại.
-- COCO API: <https://github.com/cocodataset/cocoapi>;
-  giải mã polygon/RLE bằng `pycocotools.COCO.annToMask`.
-- Điều khoản gốc: <https://cocodataset.org/#termsofuse>;
-  [bản nội dung trên repo chính thức](https://github.com/cocodataset/cocodataset.github.io/blob/master/dataset/termsofuse.htm).
+- Official COCO download page: <https://cocodataset.org/#download>.
+- Dataset version and split: **COCO 2017, val2017**, with instance-segmentation
+  annotations from
+  <http://images.cocodataset.org/annotations/annotations_trainval2017.zip>.
+  The preparation script extracts only `annotations/instances_val2017.json`
+  from this archive. The archive measured 252,907,541 bytes when downloaded
+  on 2026-10-05 (Vietnam time).
+- Official full validation-image archive:
+  <http://images.cocodataset.org/zips/val2017.zip>. To avoid downloading
+  unrelated images, the script fetches only the selected files from
+  `http://images.cocodataset.org/val2017/{file_name}`. It does not resize or
+  recompress them.
+- COCO API: <https://github.com/cocodataset/cocoapi>. The script converts
+  polygon/RLE annotations into masks with `pycocotools.COCO.annToMask`.
+- Terms of use: <https://cocodataset.org/#termsofuse> and the
+  [official site repository](https://github.com/cocodataset/cocodataset.github.io/blob/master/dataset/termsofuse.htm).
+- Processed 50-image/50-GT-mask ZIP:
+  [direct download](https://drive.google.com/uc?export=download&id=1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8)
+  or [Google Drive page](https://drive.google.com/file/d/1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8/view?usp=sharing).
+  The group checked anonymous download access on 2026-10-05. The ZIP contains
+  106 entries, is 9,856,902 bytes, and has SHA-256
+  `10366a6fe77cf343bb23f704ed575d53151f7ce83ce78cfc9077a4d20c55d6fa`.
 
-Annotation thuộc COCO Consortium, theo CC BY 4.0:
-<https://creativecommons.org/licenses/by/4.0/>. GT PNG là bản chuyển đổi từ
-annotation COCO do Lê Tấn Thành chuẩn bị cho nhóm 3/đề tài 7; không sửa nhãn
-bằng tay. Bản quyền ảnh thuộc chủ sở hữu ảnh, không phải COCO Consortium;
-phải xem điều khoản Flickr và giấy phép riêng của từng ảnh. Không gán chung
-CC BY 4.0 cho toàn bộ ảnh. `preparation_stats.json` giữ `flickr_url`, URL
-nguồn, ID/tên/URL giấy phép của từng ảnh theo metadata COCO, cùng checksum.
-Overlay là hình minh họa có thêm lớp màu GT trên ảnh gốc.
+COCO annotations are attributed to the COCO Consortium under CC BY 4.0.
+Lê Tấn Thành converted the selected annotations into binary GT PNGs for
+Group 3, Project 7 without manually changing the labels. The image
+copyrights remain with their respective owners; **do not assign one blanket
+CC BY 4.0 license to every photograph**. `data/coco/preparation_stats.json`
+records each selected image's source/Flickr URL, license metadata and
+checksums. The three overlays under `results/examples/data_*.png` are
+illustrations of the original image plus GT.
 
-## Quy tắc chọn mẫu đã khóa
+## Fixed selection and preprocessing procedure
 
-1. Đọc toàn bộ annotation của val2017. Duyệt `image_id` tăng dần, trong mỗi
-   ảnh duyệt `annotation_id` tăng dần để không phụ thuộc thứ tự JSON.
-2. Loại `iscrowd != 0`; bbox không hữu hạn/không đủ bốn phần tử/rộng hoặc cao
-   không dương; area không hữu hạn/không dương; segmentation không giải mã
-   được; mask sai H×W hoặc rỗng. Không đặt ngưỡng kích thước vật thể, không
-   lọc theo category hoặc độ dễ của ảnh. Các lý do được đếm theo thứ tự này,
-   mỗi annotation bị loại được đếm một lần.
-3. Khởi tạo **một** `random.Random(2026)` của Python. Với mỗi ảnh còn instance
-   hợp lệ, dùng `rng.choice` chọn một instance từ danh sách đã sắp theo ID.
-4. Sau khi đã chọn một instance trên mọi ảnh hợp lệ, dùng cùng RNG gọi
-   `rng.sample(candidates, 50)`. Giữ nguyên thứ tự trả về trong manifest.
-5. Ghi manifest trước khi tải ảnh hoặc tạo overlay. Nếu chạy lại cho ra danh
-   sách khác manifest hiện có, script dừng thay vì tự đổi danh sách.
-6. Dùng `manifest[:10]` cho smoke test và `manifest[:3]` cho overlay kiểm tra.
-   Không chọn lại mẫu dựa trên mask dự đoán hay IoU. Bản bàn giao này dùng đủ
-   50 mẫu; không sử dụng phương án dự phòng 20 mẫu.
+1. Read all COCO val2017 instance annotations. Visit `image_id` in ascending
+   order and `annotation_id` in ascending order within each image, avoiding
+   dependence on the JSON file's original order.
+2. Reject annotations with `iscrowd != 0`, a missing/non-finite/non-positive
+   box or area, an undecodable segmentation, a mask whose shape differs from
+   the image, or an empty mask. Rejection reasons are counted in that order,
+   once per annotation. There is no object-size, category or visual-ease
+   filter.
+3. Construct exactly one Python `random.Random(2026)` generator. For every
+   image with at least one valid instance, call `rng.choice` on its
+   ID-sorted valid annotations to select one instance.
+4. Call `rng.sample(candidates, 50)` using the **same** generator. Preserve
+   the returned order in the manifest.
+5. Write/check the manifest before downloading selected images or drawing
+   overlays. If a rerun produces a different list, the script stops instead
+   of silently replacing the fixed evaluation set.
+6. Use `manifest[:10]` for smoke tests and `manifest[:3]` for three GT
+   alignment overlays. Do not reselect examples based on model IoU.
 
-Chỉ ghi seed là chưa đủ để tái tạo: cần giữ đúng thứ tự xử lý, thuật toán
-trên, dữ liệu nguồn và phiên bản môi trường. Manifest đã xuất là danh sách
-chính thức cho các thành viên sử dụng.
+The seed alone does not fully specify the sample; the ordered algorithm,
+source version and software environment above are part of the protocol.
+Selection was completed before model predictions were inspected.
 
-## Số lượng thực tế sau chuẩn bị
-
-| Hạng mục | Số lượng |
+| Data-preparation count | Value |
 |---|---:|
-| Ảnh trong annotation val2017 | 5,000 |
-| Annotation ban đầu | 36,781 |
-| Loại vì `iscrowd != 0` | 446 |
-| Loại vì bbox/area không hợp lệ | 0 |
-| Loại vì lỗi giải mã, sai kích thước hoặc mask rỗng | 0 |
-| Annotation hợp lệ còn lại | 36,335 |
-| Ảnh có ít nhất một instance hợp lệ | 4,952 |
-| Ảnh không có instance hợp lệ | 48 |
-| Ảnh / instance được chọn | 50 / 50 |
-| Category có mặt trong 50 instance | 30 |
-| Smoke instances / overlay kiểm tra | 10 / 3 |
+| Images in val2017 annotations | 5,000 |
+| Initial instance annotations | 36,781 |
+| Rejected because `iscrowd != 0` | 446 |
+| Rejected by other validity checks | 0 |
+| Remaining valid annotations | 36,335 |
+| Images with at least one valid instance | 4,952 |
+| Images without a valid instance | 48 |
+| Selected images / instances | 50 / 50 |
+| Categories represented in the subset | 30 |
+| Smoke instances / alignment overlays | 10 / 3 |
 
-Đây là thống kê dữ liệu, không phải kết quả mô hình. Tập nhỏ không được cân
-bằng theo lớp và không đại diện đầy đủ cho COCO. Thống kê máy đọc được nằm
-trong `data/coco/preparation_stats.json`; lý do loại không xuất hiện trong
-dictionary `rejected_annotations` có số lượng bằng 0.
+These are **dataset counts, not model results**. The 50-instance sample is
+not class-balanced and does not represent all COCO categories. The
+machine-readable counts are in `data/coco/preparation_stats.json`; an absent
+key in `rejected_annotations` means zero occurrences.
 
-## File và giao diện bàn giao
+## Files and data contract
 
 ```text
 scripts/prepare_data.py
 scripts/extract_data_zip.py
+scripts/validate_inputs.py
 configs/eval_manifest.json
-DATA.md
-data/coco/annotations/instances_val2017.json
+data/coco/annotations/instances_val2017.json     # only after official download
 data/coco/val2017/{file_name}
 data/coco/gt_masks/{annotation_id}.png
 data/coco/preparation_stats.json
-results/examples/data_{image_id}_{annotation_id}.png  (3 ảnh)
-data/coco_eval_seed2026.zip
+results/examples/data_{image_id}_{annotation_id}.png  # three tracked previews
 ```
 
-Manifest là JSON **list**, mỗi dòng có đúng tám trường đã thống nhất:
+The manifest is a JSON **list**. Each entry has exactly these eight fields:
 
-| Trường | Ý nghĩa / định dạng |
+| Field | Meaning |
 |---|---|
-| `image_id` | ID ảnh COCO, số nguyên |
-| `annotation_id` | ID instance COCO, số nguyên |
-| `file_name` | Tên JPEG gốc để ghép với `data/coco/val2017/` |
-| `width`, `height` | Kích thước ảnh gốc, pixel |
-| `category_id` | ID category gốc COCO, không remap |
-| `bbox_xywh` | `[x, y, width, height]` từ annotation, không đổi định dạng |
-| `area` | Diện tích do annotation COCO cung cấp, không thay bằng diện tích bbox |
+| `image_id` | Integer COCO image ID |
+| `annotation_id` | Integer COCO instance ID |
+| `file_name` | Original JPEG filename under `data/coco/val2017/` |
+| `width`, `height` | Original image dimensions in pixels |
+| `category_id` | Original COCO category ID; not remapped |
+| `bbox_xywh` | Original annotation box `[x, y, width, height]` |
+| `area` | Original COCO annotation area, not the bounding-box area |
 
-`area` gốc có thể khác số pixel 1 sau rasterize polygon. GT mask lưu bằng PNG
-8-bit một kênh, giá trị **0 hoặc 255**; khi nạp phải chuyển `> 0` thành bool.
-Mask đánh dấu đúng instance của dòng manifest, không gom các vật thể cùng
-category. Tất cả mask có shape `(height, width)` của ảnh gốc. Không resize,
-crop, augmentation hay chuẩn hóa pixel ở bước chuẩn bị dữ liệu.
+Each GT mask represents **only the selected instance**, not every object of
+the same category. It is an 8-bit single-channel PNG with values 0 and 255
+and shape `(height, width)`. The COCO `area` field may differ from the number
+of foreground pixels after rasterizing a polygon. Images and masks are kept
+at original resolution; the data-preparation stage performs no crop, resize,
+augmentation or pixel normalization. RGB conversion occurs when loading an
+image for a model.
 
-Ví dụ nạp dữ liệu từ thư mục gốc repo:
+Example from the repository root:
 
 ```python
 import json
 from pathlib import Path
+
 import numpy as np
 from PIL import Image
 
-root = Path('.')
-manifest = json.loads((root / 'configs/eval_manifest.json').read_text(encoding='utf-8'))
-row = manifest[0]  # manifest[:10] cho smoke test
-image = np.asarray(Image.open(root / 'data/coco/val2017' / row['file_name']).convert('RGB'))
-gt = np.asarray(Image.open(root / 'data/coco/gt_masks' / f"{row['annotation_id']}.png")) > 0
-assert image.shape[:2] == gt.shape == (row['height'], row['width'])
+root = Path(".")
+manifest = json.loads((root / "configs/eval_manifest.json").read_text(encoding="utf-8"))
+row = manifest[0]  # The first ten entries form the smoke subset.
+image = np.asarray(Image.open(root / "data/coco/val2017" / row["file_name"]).convert("RGB"))
+gt = np.asarray(Image.open(root / "data/coco/gt_masks" / f"{row['annotation_id']}.png")) > 0
+assert image.shape[:2] == gt.shape == (row["height"], row["width"])
 assert gt.dtype == np.bool_
 ```
 
-Người làm prompt tạo positive point và tight box từ GT mask theo giao thức
-của nhóm. `bbox_xywh` trong manifest giữ nguyên COCO; nếu dùng nó làm box
-input thì phải đổi sang `[x, y, x+w, y+h]`. Không truyền nhầm xywh vào SAM.
-GT được dùng để tạo prompt chuẩn và chấm điểm, không dùng để chọn mask dự
-đoán tốt nhất.
+The prompt generator derives one positive point and one tight box from each
+GT mask according to `docs/experimental_setup.md`. If using the manifest's
+COCO `bbox_xywh` directly as a box prompt, first convert it to
+`[x, y, x + width, y + height]`; do not pass XYWH coordinates to SAM as XYXY.
+GT is used to define clean prompts and calculate metrics. It is **not** used
+to choose whichever predicted mask looks best.
 
-Mười mẫu smoke, theo đúng thứ tự manifest:
+The first ten smoke entries, in manifest order, are:
 
-| STT | image_id | annotation_id |
-|---|---:|---:|
+| # | `image_id` | `annotation_id` |
+|---:|---:|---:|
 | 1 | 521282 | 1152444 |
 | 2 | 260925 | 144786 |
 | 3 | 54592 | 613127 |
@@ -149,165 +164,94 @@ Mười mẫu smoke, theo đúng thứ tự manifest:
 | 9 | 32811 | 37495 |
 | 10 | 378284 | 506923 |
 
-## Cài đặt và chạy lại
+## Reproduce or install the evaluation data
 
-Môi trường đã dùng: Python **3.12.14**, NumPy **2.5.3**, Pillow **12.3.0**,
-pycocotools **2.0.11**. Chỉ cần CPU cho bước chuẩn bị dữ liệu. Chạy các
-lệnh dưới đây từ thư mục gốc repo. Trên macOS dùng `python3.12` (không dùng
-nhầm Python 3.14 mặc định nếu môi trường chưa hỗ trợ các phiên bản thư viện
-được ghi ở đây).
+Use Python 3.12 from the repository root. The recorded preparation
+environment used Python 3.12.14, NumPy 2.5.3, Pillow 12.3.0 and
+pycocotools 2.0.11. Only CPU is needed. The root `requirements.txt` records
+compatible dependency ranges; exact observed versions are above.
 
-Windows PowerShell với Python 3.12:
+### Fast path: install the published processed ZIP
 
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install numpy==2.5.3 Pillow==12.3.0 pycocotools==2.0.11
-.\.venv\Scripts\python.exe scripts\prepare_data.py --download
-```
+Download the processed ZIP linked above. **Do not unpack the whole archive
+over the repository:** it also contains an older copy of `DATA.md` and a
+manifest whose line endings can differ from Git. The extraction script
+checks the ZIP and installs only the required files under `data/coco/`.
 
-Trên máy Thành đã có `.venv`, chạy trực tiếp lệnh cuối. Môi trường này được
-tạo từ Python đi kèm Codex; không chia sẻ `.venv` cho các máy khác. Các phiên
-bản trên là dependencies của phần dữ liệu để trưởng nhóm ghép vào
-`requirements.txt` chung.
-
-macOS với Python 3.12:
+macOS/Linux:
 
 ```bash
-python3.12 -m venv .venv
-.venv/bin/python -m pip install numpy==2.5.3 Pillow==12.3.0 pycocotools==2.0.11
+.venv/bin/python scripts/extract_data_zip.py /path/to/coco_eval_seed2026.zip --check-only
+.venv/bin/python scripts/extract_data_zip.py /path/to/coco_eval_seed2026.zip
+.venv/bin/python scripts/validate_inputs.py
+```
+
+Windows PowerShell: replace `.venv/bin/python` with
+`.\.venv\Scripts\python.exe` and use the downloaded ZIP's Windows path.
+The `--check-only` call does not write files. The installer checks the fixed
+manifest, the 50 image/GT-mask pairs and archive integrity. It does not
+need to download the complete COCO annotation archive.
+
+### From the official COCO annotations
+
+Create a Python 3.12 environment and install `requirements.txt` if needed,
+then run:
+
+```bash
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python scripts/prepare_data.py --download
 .venv/bin/python scripts/prepare_data.py --verify-only
 ```
 
-`--download` tải annotation COCO chính thức và chỉ 50 ảnh đã chốt. Có thể
-dùng gói ZIP xử lý bên dưới để lấy ảnh/GT mask nhanh hơn; tuy nhiên để chạy
-`--verify-only` đối chiếu từng pixel với annotation gốc vẫn cần file
-`instances_val2017.json` (lệnh `--download` sẽ lấy file này nếu còn thiếu).
+`--download` obtains the official annotation archive and the **same 50**
+selected images, then prepares the masks. It resumes by retaining files
+already downloaded; it does not silently replace the manifest. If the
+annotation JSON and source images were placed manually at the paths above,
+`scripts/prepare_data.py` can run without `--download`. `--verify-only`
+checks the fixed sample against the original annotations, all image/mask
+pairs, binary mask values, image/mask checksums and the three overlays. It
+requires `instances_val2017.json`, which is **not** in the processed ZIP.
+For Windows, use `py -3.12` or `.\.venv\Scripts\python.exe`.
 
-Script chỉ tải file còn thiếu. Nếu một ảnh tải lỗi, giữ nguyên danh sách ID
-và dừng; chạy lại cùng lệnh sẽ tiếp tục từ các file đã có. Không tự thay ảnh.
-Nếu đã tải thủ công, đặt JSON và ảnh vào đúng đường dẫn trên rồi chạy:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\prepare_data.py
-```
-
-Kiểm tra lại không sửa dữ liệu:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\prepare_data.py --verify-only
-```
-
-Lệnh này sinh lại danh sách từ annotation, so với manifest đã khóa, kiểm tra
-đủ 50 cặp ảnh/mask, giá trị PNG nhị phân, đối chiếu từng pixel với
-`annToMask`, kiểm tra checksum ảnh/mask và ba file overlay. Không dùng mạng
-nếu annotation COCO đã có trên máy. Nội dung JSON được so sánh theo giá trị,
-không theo checksum byte của manifest, vì Git có thể đổi ký tự xuống dòng
-giữa Windows và macOS.
-
-Tạo lại ZIP sau khi đã chuẩn bị hoặc kiểm tra:
-
-```powershell
-.\.venv\Scripts\python.exe scripts\prepare_data.py --verify-only --package
-```
-
-## Kiểm tra overlay và giới hạn nhãn
-
-Ba hình lấy từ ba dòng đầu, không chọn theo chất lượng mô hình:
-
-- `data_521282_1152444.png`: category **vase**, GT đánh dấu bình hoa.
-- `data_260925_144786.png`: category **car**, GT đánh dấu xe; vùng gắn nhãn
-  COCO khá thô và có phần phủ qua con mèo phía trước. Giữ nguyên annotation
-  gốc, ghi nhận là giới hạn GT khi diễn giải IoU sau này.
-- `data_54592_613127.png`: category **skis**, GT đánh dấu ván trượt được chọn.
-
-Đã xem trực quan cả ba: hình bên trái là ảnh gốc, bên phải là GT màu đỏ với
-độ đục 45%; không thấy lỗi dịch hệ tọa độ/đảo kích thước do xử lý dữ liệu.
-Kiểm tra trực quan ba mẫu không chứng minh mọi nhãn COCO đều hoàn hảo.
-
-SHA256 của `instances_val2017.json` đã tải:
-`e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f`.
-
-SHA256 byte của manifest **trong ZIP gốc** (xuống dòng CRLF):
-`de36a8b929c27bc14872969d091b72ad54f2bd62013b2c342d80d7ac0bd0b4a2`.
-Sau Git checkout trên macOS, cùng nội dung JSON có xuống dòng LF và SHA256
-byte là `650aa13384930d21c107ba2e4c3da9fbe93a24e8df91219e5b9b33de7498f87d`.
-SHA256 của **nội dung JSON chuẩn hóa** (sắp khóa, không phụ thuộc xuống dòng)
-là `220a2ec1053848996e4b325e60f3acb3a7bc36b9ef77a3dd7dfc201df749602f`.
-Không dùng hai checksum byte khác nhau để kết luận danh sách mẫu đã đổi.
-
-Đây là checksum ghi nhận tại lần chuẩn bị, không phải chữ ký xác thực của
-nhà phát hành. Checksum từng ảnh và mask nằm trong `preparation_stats.json`.
-
-## Gói dữ liệu xử lý để bàn giao
-
-File tại máy: **`data/coco_eval_seed2026.zip`**. Gói Drive hiện tại chứa 50
-ảnh gốc, 50 GT masks, manifest, thống kê/nguồn/giấy phép và ba overlay, kèm
-một bản `DATA.md` cũ. **Không giải nén toàn bộ ZIP đè lên thư mục repo**:
-như vậy sẽ thay `DATA.md` và manifest đã theo Git. Từ thư mục gốc repo, dùng
-script chỉ kiểm tra và lấy các file thuộc `data/coco/`:
+To package a freshly prepared and verified subset:
 
 ```bash
-python3.12 scripts/extract_data_zip.py /duong/dan/toi/coco_eval_seed2026.zip --check-only
-python3.12 scripts/extract_data_zip.py /duong/dan/toi/coco_eval_seed2026.zip
+.venv/bin/python scripts/prepare_data.py --verify-only --package
 ```
 
-Trên Windows thay `python3.12` bằng `py -3.12` và đường dẫn ZIP bằng đường
-dẫn trên máy của bạn. Script dùng thư viện chuẩn của Python; nó đối chiếu
-manifest trong ZIP với manifest trên Git, kiểm tra toàn vẹn ZIP/checksum của
-50 ảnh và 50 masks, rồi chỉ lấy dữ liệu. `--check-only` không ghi file.
-Gói ZIP không chứa toàn bộ annotation COCO; để chạy `--verify-only` đối chiếu
-với annotation gốc trên máy mới, chạy `prepare_data.py --download` trước.
+Do not replace the linked processed ZIP without publishing its new URL and
+checksum. The current Drive ZIP was created before the latest `DATA.md`,
+but its images, masks and manifest contents match the tracked protocol.
 
-- [Tải ZIP trực tiếp](https://drive.google.com/uc?export=download&id=1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8)
-- [Mở file trên Google Drive](https://drive.google.com/file/d/1WbxCsxLFAPNl1HjxBa-_02kNHiUH-zu8/view?usp=sharing)
+## Visual checks and annotation limits
 
-Đã kiểm tra ngày 05/10/2026: tải được không cần đăng nhập; ZIP có
-9,856,902 bytes, 106 file và vượt qua kiểm tra toàn vẹn. SHA256 của ZIP:
-`10366a6fe77cf343bb23f704ed575d53151f7ce83ce78cfc9077a4d20c55d6fa`.
+The three tracked alignment overlays use the **first three manifest rows**;
+they were not selected by model performance:
 
-ZIP trên Drive giữ nguyên bản dữ liệu đã kiểm tra. Bản `DATA.md` bên trong
-ZIP được tạo trước khi có link chia sẻ; dùng `DATA.md` trên nhánh mới nhất
-làm tài liệu cập nhật. Ảnh, masks và nội dung manifest không thay đổi. Nếu
-tạo lại ZIP bằng phiên bản mới của `prepare_data.py`, gói mới không chứa
-`DATA.md` hay overlay đã có trên Git; cần công bố link/checksum mới nếu thay
-gói Drive đang dẫn ở đây.
+- `data_521282_1152444.png`: **vase**; the GT marks the flower vase.
+- `data_260925_144786.png`: **car**; the COCO mask is relatively coarse and
+  extends partly over a cat in front of the car. We retain the original
+  annotation and discuss this as a GT limitation when interpreting IoU.
+- `data_54592_613127.png`: **skis**; the GT marks the selected skis.
 
-Thư mục `/data/` được bỏ qua bởi Git, gồm ảnh, masks, annotation và ZIP.
-Code, manifest, ba overlay và `DATA.md` là các file nhẹ để bàn giao qua repo
-trên nhánh `thanh-data`. Không cần đưa ảnh COCO hay checkpoint vào Git.
+The original image is on the left and a red GT overlay at 45% opacity is on
+the right. Visual inspection of these three examples found no coordinate or
+dimension shift introduced by preprocessing. Three checks cannot establish
+that every COCO label is perfect.
 
-## Dataset and Data Preparation - nội dung bàn giao cho báo cáo
+The downloaded `instances_val2017.json` had SHA-256
+`e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f`.
+The original ZIP's CRLF manifest had byte-level SHA-256
+`de36a8b929c27bc14872969d091b72ad54f2bd62013b2c342d80d7ac0bd0b4a2`;
+the same tracked JSON with LF line endings had byte-level SHA-256
+`650aa13384930d21c107ba2e4c3da9fbe93a24e8df91219e5b9b33de7498f87d`.
+The normalized JSON content hash was
+`220a2ec1053848996e4b325e60f3acb3a7bc36b9ef77a3dd7dfc201df749602f`.
+Different line endings alone do not mean the sample changed. These observed
+checksums are provenance records, not publisher signatures; individual
+image/mask hashes are in `preparation_stats.json`.
 
-We constructed a fixed evaluation subset from the COCO 2017 validation
-split (val2017), using the official instance segmentation annotations.
-The source contains 5,000 images and 36,781 annotations. We excluded 446
-crowd annotations (`iscrowd != 0`), leaving 36,335 valid instances across
-4,952 images. We also checked bounding-box and area validity, segmentation
-decoding, non-empty masks and mask dimensions; these checks rejected no
-additional annotations. No category-specific or minimum-size filtering
-was applied.
-
-Using Python's `random.Random(2026)`, we selected one valid instance per
-eligible image in ascending image-ID order, with annotations sorted by ID,
-and then sampled 50 image-instance pairs using the same random generator.
-The subset contains 30 categories and is not class-balanced. All three
-experimental setups must use this fixed manifest; its first ten entries
-form the smoke-test subset. Selection was completed before model inference
-or inspection of IoU scores.
-
-Ground-truth segmentations were decoded with pycocotools 2.0.11 and saved
-as binary PNG masks at the original image resolution (0 for background,
-255 for the selected instance). Images were not resized or augmented;
-RGB conversion is performed when loading them. Three overlays were
-visually inspected to check image-mask alignment. We retained the original
-COCO annotations, including coarse boundaries or occlusion-related label
-limitations. The dataset is used only for evaluation of pretrained models,
-with no training, fine-tuning or additional train/validation split. The
-small sample and annotation imperfections limit generalization. Sources,
-selection rules, software versions and checksums are documented in DATA.md
-and the accompanying preparation statistics.
-
-Nguồn cho phần Dataset: COCO download/terms và COCO API ở đầu tài liệu.
-Trưởng nhóm ghép đoạn này vào báo cáo chung và sử dụng link tải gói xử lý
-ở mục bàn giao phía trên.
+The local `data/` directory is ignored by Git, as are model checkpoints and
+full prediction masks. The code, fixed manifest, preview overlays and this
+document remain in the repository. The sample's small size, class imbalance
+and occasionally coarse COCO boundaries limit generalization.

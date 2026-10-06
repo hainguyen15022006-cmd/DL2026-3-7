@@ -28,7 +28,9 @@ For binary masks:
 - If both masks are empty, IoU and Dice are defined as 1.0. The data pipeline should still reject empty GT masks before experiments.
 - If the source run failed, mask evaluation is skipped and the row is preserved with its error.
 
-Failure thresholds are fixed before inspecting results:
+The following failure thresholds are used consistently for descriptive
+analysis. The group did **not** fix them before the project started; do not
+describe them as preregistered:
 
 - F1: `IoU < 0.5`.
 - F2: for a noisy prompt, `clean IoU - noisy IoU >= 0.2` on the same model, annotation and prompt type.
@@ -86,9 +88,12 @@ This check verifies that run IDs are unchanged, group counts match, mean IoU val
 
 For a read-only check of a CSV supplied through a pipe, use `--input -`.
 
-The committed tables use runner-recorded IoU: full masks for the shared run
-were unavailable when these tables were generated. The report must state
-this, rather than claiming all 800 rows received mask-level verification.
+The committed tables use runner-recorded IoU because full masks were
+unavailable **when the tables were generated**. After handoff, the group
+received the matching shared-run archive and verified all 800 IoUs against
+the fixed GT. See `results/metrics/SOURCE.md` for the dated audit and archive
+checksum. Do not imply that mask verification had occurred during the
+original table-generation step.
 
 ## Outputs
 
@@ -109,8 +114,9 @@ Difference signs are fixed as follows:
 
 ## Required handoffs from other members
 
-The integrated branch now contains the fixed manifest, prompt table and
-shared 800-row log. COCO images/GT and full masks remain outside Git. The
-full shared-run mask archive is still required for an independent audit of
-all 800 IoUs. The English Results/Discussion draft is in
+The integrated branch contains the fixed manifest, prompt table and shared
+800-row log. COCO images/GT and full masks remain outside Git; the separate
+shared-run archive was received and audited on 2026-10-06. A third party
+still needs that archive or a fresh inference run to repeat the mask-level
+audit. The English Results/Discussion draft is in
 `report/results_discussion.md`; it must be reviewed with the final report.

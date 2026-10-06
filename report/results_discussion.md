@@ -48,21 +48,24 @@ segmentation quality. Box performance fell more in absolute mean IoU from
 its higher clean starting value. The 150 noisy runs per condition are three
 trials on the same 50 instances, **not 150 independent images**.
 
-The predefined failure flags (`IoU < 0.5` or, for noisy prompts, an IoU
+The descriptive failure flags (`IoU < 0.5` or, for noisy prompts, an IoU
 drop of at least 0.2) are tabulated in `failure_summary.csv`. They indicate
 where qualitative inspection should focus, but do not by themselves
-identify a causal failure mechanism. The final report should integrate
+identify a causal failure mechanism. These thresholds were not fixed before
+the project started; see `docs/failure_definition.md`. The final report should integrate
 the separately authored error/qualitative analysis and show example masks
 for selected cases.
 
 ## Measurement and generalization limits
 
 The committed aggregates were regenerated and checked against the shared
-runner CSV, which contains 800 `status=ok` rows. The full prediction masks
-for **that same shared run** are not bundled, so this reporting pass did not
-independently recompute all 800 IoUs from masks. Dương's 700 delivered masks
-belong to a separate SAM-only run and cannot fill that gap. The sample is
-small and not class-balanced; COCO polygon-derived masks can also differ
+runner CSV, which contains 800 `status=ok` rows. At the time these tables
+were made, the full prediction masks were unavailable. The group later
+received the matching shared-run mask bundle and independently checked all
+800 recorded IoUs against those masks and the fixed GT; see
+`results/metrics/SOURCE.md`. The bundle remains outside GitHub. Dương's 700
+delivered masks belong to a separate SAM-only run and were not substituted.
+The sample is small and not class-balanced; COCO polygon-derived masks can also differ
 from perceived object boundaries. Only pretrained inference was performed:
 neither model was trained or fine-tuned by the group. These findings should
 therefore be stated as observations on this controlled evaluation set, not
